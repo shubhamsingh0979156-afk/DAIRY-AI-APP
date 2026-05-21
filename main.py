@@ -47,7 +47,7 @@ def home():
                 input[type="text"] {{ flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; font-size: 15px; outline: none; background-color: #f9f9f9; }}
                 .send-btn {{ background-color: #1b5e20; color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; }}
                 
-                /* यह काउंटर शुरू में छुपा (display: none) रहेगा */
+                /* यह काउंटर शुरू में छुपा रहेगा */
                 .dashboard-counter {{ display: none; background-color: #ffd54f; color: #333; padding: 8px; text-align: center; font-size: 13px; font-weight: bold; position: fixed; bottom: 60px; left: 0; right: 0; z-index: 20; border-top: 1px solid #ffa000; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }}
                 
                 .info-card {{ background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 4px solid #1b5e20; }}
@@ -148,21 +148,18 @@ def home():
                 function openLogin() {{ document.getElementById('loginModal').style.display = 'flex'; }}
                 function closeLogin() {{ document.getElementById('loginModal').style.display = 'none'; }}
                 
-                // पासवर्ड चेक करने का लॉजिक
                 function submitLogin() {{
                     let name = document.getElementById('username').value.trim();
                     let pass = document.getElementById('userphone').value.trim();
                     if(!name) {{ alert('कृपया नाम लिखें!'); return; }}
                     
-                    // अगर आपने सीक्रेट पासवर्ड डाला
                     if(pass === 'Shubham79') {{
                         document.getElementById('loginBtn').innerText = "👑 " + name + " (Owner)";
-                        document.getElementById('ownerDashboard').style.display = 'block'; // डैशबोर्ड खुल जाएगा
+                        document.getElementById('ownerDashboard').style.display = 'block';
                         alert('राम-राम मालिक! आपका सीक्रेट डैशबोर्ड एक्टिव हो गया है।');
                     }} else {{
-                        // आम ग्राहक के लिए नॉर्मल लॉगिन
                         document.getElementById('loginBtn').innerText = "👤 " + name;
-                        document.getElementById('ownerDashboard').style.display = 'none'; // आम लोगों से छुपा रहेगा
+                        document.getElementById('ownerDashboard').style.display = 'none';
                     }}
                     closeLogin();
                 }}
@@ -218,10 +215,10 @@ def home():
 @app.get("/chat")
 def chat_with_ai(q: str = Query(...)):
     system_instruction = (
-        "तुम 'AgriDairy Expert AI' हो। तुम एक बेहद मददगार, समझदार और दोस्ताना AI गाइड हो। "
+        "तुम 'AgriDairy Expert AI' हो। तुम एक बेहद मददगार, समझदार and दोस्ताना AI गाइड हो। "
         "तुम यूजर की भाषा (हिंदी, इंग्लिश, या हिंग्लिश) को तुरंत समझकर उसी आसान भाषा में जवाब देते हो। "
         "जब भी कोई डेयरी का सवाल पूछे, तुम तुरंत Google Search का उपयोग करोगे और सटीक वैज्ञानिक डेटा, "
-        "मात्रा (किलोग्राम/ग्राम), दवाइयों के नाम और GROUND REPORT के आधार पर ही उत्तर दोगे।"
+        "मात्रा (किलोग्राम/ग्राम), दवाइयों के नाम और ग्राउंड रिपोर्ट के आधार पर ही उत्तर दोगे।"
     )
     try:
         res = client.models.generate_content(

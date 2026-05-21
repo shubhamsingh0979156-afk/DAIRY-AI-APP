@@ -6,10 +6,9 @@ from google.genai import types
 
 app = FastAPI()
 
-# चाबी को कोड से बाहर रखा गया है (सुरक्षा के लिए)
+# चाबी सुरक्षित रूप से एन्वायरमेंट से लोड होगी
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-# डेटाबेस सिमुलेशन (जब तक रेंडर चालू रहेगा, यह डेटा याद रखेगा)
 DATA_STORE = {
     "visitor_count": 0,
     "milk_rate_cow": "₹42 - ₹48",
@@ -34,18 +33,14 @@ def home():
                 * { box-sizing: border-box; }
                 body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f5; margin: 0; padding-bottom: 70px; height: 100vh; display: flex; flex-direction: column; }
                 
-                /* हेडर */
                 .header { background-color: #1b5e20; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }
                 .auth-btn { background-color: #ffff; color: #1b5e20; border: none; padding: 6px 14px; border-radius: 20px; font-size: 14px; cursor: pointer; font-weight: bold; }
                 
-                /* विज्ञापन जगह */
                 .ad-placeholder { background-color: #f1f3f4; border: 1px dashed #bbb; color: #777; text-align: center; padding: 10px; font-size: 12px; margin: 5px auto; max-width: 800px; width: 95%; border-radius: 5px; }
                 
-                /* मुख्य पेज एरिया */
                 .page-content { flex: 1; display: none; overflow-y: auto; padding: 15px; max-width: 800px; width: 100%; margin: 0 auto; }
                 .active-page { display: flex; flex-direction: column; }
                 
-                /* चैट स्क्रीन */
                 .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 70px; }
                 .message { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }
                 .user-message { background-color: #e8f5e9; color: #1b5e20; align-self: flex-end; border-bottom-right-radius: 4px; border: 1px solid #c8e6c9; }
@@ -56,24 +51,20 @@ def home():
                 input[type="text"], input[type="number"], select { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; font-size: 15px; outline: none; background-color: #f9f9f9; }
                 .send-btn { background-color: #1b5e20; color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; }
                 
-                /* कार्ड्स और टेबल्स */
                 .info-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 4px solid #1b5e20; }
                 table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
                 th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
                 th { background-color: #e8f5e9; color: #1b5e20; }
                 
-                /* बॉटम नेविगेशन */
                 .nav-bar { background-color: white; border-top: 1px solid #e0e0e0; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; display: flex; justify-content: space-around; align-items: center; z-index: 10; }
                 .nav-item { background: none; border: none; color: #666; display: flex; flex-direction: column; align-items: center; font-size: 12px; cursor: pointer; font-weight: 500; }
                 .nav-item.active { color: #1b5e20; font-weight: bold; }
                 .nav-icon { font-size: 18px; margin-bottom: 2px; }
                 
-                /* पॉप-अप (Modal) */
                 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
                 .modal-content { background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; }
                 .modal-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
                 
-                /* एडमिन पैनल और मेरी डेयरी */
                 .dashboard-counter { display: none; background-color: #ffd54f; color: #333; padding: 10px; text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ffa000; }
                 .admin-section { background: #fffde7; padding: 15px; border-radius: 10px; border: 1px solid #fff59d; margin-bottom: 15px; }
                 .loading { font-style: italic; color: #777; align-self: flex-start; }
@@ -195,7 +186,7 @@ def home():
                 <div class="modal-content" id="loginBox">
                     <h3>🐄 किसान भाई लॉगिन</h3>
                     <input type="text" id="username" class="modal-input" placeholder="अपना नाम लिखें">
-                    <input type="number" id="userphone" class="modal-input" placeholder="मोबाइल नंबर / एडमिन पासवर्ड">
+                    <input type="text" id="userphone" class="modal-input" placeholder="मोबाइल नंबर / एडमिन पासवर्ड">
                     <button class="send-btn" style="width:100%; margin-top:10px;" onclick="sendDemoOTP()">OTP भेजें</button>
                     <button class="auth-btn" style="width:100%; margin-top:5px; background:#eee; color:#333;" onclick="closeAuthModal()">बंद करें</button>
                 </div>
@@ -223,8 +214,7 @@ def home():
                 }
 
                 function handleAuthClick() {
-                    if(document.getElementById('authBtn').innerText === "लॉगआउट") {
-                        // लॉगआउट करने का पक्का लॉजिक
+                    if(document.getElementById('authBtn').innerText === "लॉगआऊट") {
                         currentUserName = "";
                         currentUserPhone = "";
                         document.getElementById('authBtn').innerText = "लॉगिन";
@@ -246,7 +236,6 @@ def home():
                     currentUserPhone = document.getElementById('userphone').value.trim();
                     if(!currentUserName || !currentUserPhone) { alert('कृपया पूरा नाम और नंबर भरें!'); return; }
                     
-                    // मालिक का डायरेक्ट बाईपास
                     if(currentUserPhone === 'Shubham79') {
                         executeLogin(true);
                         return;
@@ -270,12 +259,12 @@ def home():
                     document.getElementById('bottomNav').style.display = 'flex';
                     
                     if(isAdmin) {
-                        document.getElementById('authBtn').innerText = "लॉगआउट";
+                        document.getElementById('authBtn').innerText = "लॉगआऊट";
                         document.getElementById('btn-admin').style.display = 'flex';
                         switchPage('adminPage', 'btn-admin');
-                        alert('राम-राम मालिक! आपका सीक्रेट एडमिन कंट्रोल पैनल चालू हो चुका है।');
+                        alert('राम-राम मालिक! आपका सीक्रेट एडमिन कंट्रोल面板 चालू हो चुका है।');
                     } else {
-                        document.getElementById('authBtn').innerText = "लॉगआउट";
+                        document.getElementById('authBtn').innerText = "लॉगआऊट";
                         document.getElementById('btn-admin').style.display = 'none';
                         switchPage('chatPage', 'btn-chat');
                         alert('नमस्ते ' + currentUserName + ' भाई! आपका डेयरी ऐप लॉगिन हो गया है।');
@@ -285,7 +274,6 @@ def home():
                     document.getElementById('otpInput').value = "";
                 }
 
-                // मेरी डेयरी: पशु रिकॉर्ड लॉजिक
                 function addCattle() {
                     let name = document.getElementById('cattleName').value.trim();
                     let type = document.getElementById('cattleType').value;
@@ -303,13 +291,11 @@ def home():
                     document.getElementById('cattleDate').value = "";
                 }
 
-                // मेरी डेयरी: दूध हिसाब कैलकुलेटर
                 function calculateMilk() {
                     let lit = parseFloat(document.getElementById('milkLitres').value);
                     let fat = parseFloat(document.getElementById('milkFat').value);
                     if(!lit || !fat) { alert('लीटर और फैट की सही मात्रा दर्ज करें!'); return; }
                     
-                    // एक व्यावहारिक अनुमानित डेयरी रेट फार्मूला (जैसे ₹11 प्रति फैट)
                     let estimatedPricePerLitre = fat * 11;
                     let currentEarning = lit * estimatedPricePerLitre;
                     
@@ -325,7 +311,6 @@ def home():
                     document.getElementById('milkFat').value = "";
                 }
 
-                // ओनर कंट्रोल पैनल: मंडी रेट लाइव अपडेट करने का लॉजिक (बिना कोड बदले)
                 function updateRatesBackend() {
                     let cow = document.getElementById('txt_cow').value.trim();
                     let buff = document.getElementById('txt_buff').value.trim();
@@ -334,7 +319,6 @@ def home():
                     alert('बधाई हो मालिक! नया मंडी रेट पूरी वेबसाइट पर लाइव बदल चुका है।');
                 }
 
-                // ओनर कंट्रोल पैनल: योजनाएं बदलने का लॉजिक (बिना कोड बदले)
                 function updateSchemeBackend() {
                     let title = document.getElementById('txt_sch_title').value.trim();
                     let detail = document.getElementById('txt_sch_detail').value.trim();
@@ -343,7 +327,6 @@ def home():
                     alert('सफलतापूर्वक! नई सरकारी योजना सीधे ग्राहकों के मोबाइल स्क्रीन के लिए अपलोड हो गई है।');
                 }
 
-                // जेमिनी एआई सर्च गाइड लॉजिक
                 async function askAI() {
                     let inputField = document.getElementById('query');
                     let q = inputField.value.trim();

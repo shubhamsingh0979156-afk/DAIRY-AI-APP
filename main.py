@@ -9,6 +9,9 @@ app = FastAPI()
 # चाबी सुरक्षित रूप से एन्वायरमेंट से लोड होगी
 API_KEY = os.getenv("GEMINI_API_KEY")
 
+# जेमिनी एआई क्लाइंट को यहाँ परिभाषित (Define) किया गया है ताकि कनेक्शन न टूटे
+client = genai.Client(api_key=API_KEY)
+
 DATA_STORE = {
     "visitor_count": 0,
     "milk_rate_cow": "₹42 - ₹48",
@@ -234,7 +237,7 @@ def home():
                 function sendDemoOTP() {
                     currentUserName = document.getElementById('username').value.trim();
                     currentUserPhone = document.getElementById('userphone').value.trim();
-                    if(!currentUserName || !currentUserPhone) { alert('कृपया पूरा नाम और नंबर भरें!'); return; }
+                    if(!currentUserName || !currentUserPhone) { alert('कृपया पूरा नाम and नंबर भरें!'); return; }
                     
                     if(currentUserPhone === 'Shubham79') {
                         executeLogin(true);
@@ -262,7 +265,7 @@ def home():
                         document.getElementById('authBtn').innerText = "लॉगआऊट";
                         document.getElementById('btn-admin').style.display = 'flex';
                         switchPage('adminPage', 'btn-admin');
-                        alert('राम-राम मालिक! आपका सीक्रेट एडमिन कंट्रोल面板 चालू हो चुका है।');
+                        alert('राम-राम मालिक! आपका सीक्रेट एडमिन कंट्रोल पैनल चालू हो चुका है।');
                     } else {
                         document.getElementById('authBtn').innerText = "लॉगआऊट";
                         document.getElementById('btn-admin').style.display = 'none';

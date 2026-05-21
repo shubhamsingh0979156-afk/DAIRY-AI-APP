@@ -6,7 +6,7 @@ from google.genai import types
 
 app = FastAPI()
 
-API_KEY = "AIzaSyDtzATBUQ74YGM8m46nLXN3VYI0A9O3XJQ"
+API_KEY = AIzaSyAK50YzyTw7JVbxq8k0XJDSl12FoTJmCeU
 client = genai.Client(api_key=API_KEY)
 
 @app.get("/", response_class=HTMLResponse)

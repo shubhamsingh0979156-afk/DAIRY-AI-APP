@@ -1,0 +1,36 @@
+import os
+from fastapi import FastAPI
+from google import genai
+from google.genai import types
+
+app = FastAPI()
+
+# आपकी API Key यहाँ सेट है
+API_KEY = "AIzaSyDtzATBUQ74YGM8m46nLXN3VYI0A9O3XJQ"
+client = genai.Client(api_key=API_KEY)
+
+@app.get("/")
+def home():
+    return {"status": "AgriDairy AI Server is Running Live!"}
+
+@app.get("/chat")
+def chat_with_ai(q: str):
+    system_instruction = (
+        "तुम 'AgriDairy Expert AI' हो। तुम एक बेहद मददगार, समझदार और दोस्ताना AI गाइड हो। "
+        "तुम यूजर की भाषा (हिंदी, इंग्लिश, या हिंग्लिश) को तुरंत समझकर उसी आसान भाषा में जवाब देते हो। "
+        "जब भी कोई डेयरी का सवाल पूछे, तुम तुरंत Google Search का उपयोग करोगे और सटीक वैज्ञानिक डेटा, "
+        "маत्रा (किलोग्राम/ग्राम), दवाइयों के नाम और ग्राउंड रिपोर्ट के आधार पर ही उत्तर दोगे।"
+    )
+    try:
+        res = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=q,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction, 
+                tools=[types.Tool(google_search=types.GoogleSearch())], 
+                temperature=0.3
+            )
+        )
+        return {"response": res.text}
+    except Exception as e:
+        return {"error": str(e)}

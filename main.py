@@ -18,53 +18,54 @@ def home():
     global VISITOR_COUNT
     VISITOR_COUNT += 1  # हर विज़िट पर गिनती बढ़ेगी
     
-    return f"""
+    # बिना f-string के सीधा HTML ताकि ब्रैकेट का कोई एरर न आए
+    html_content = """
     <!DOCTYPE html>
     <html>
         <head>
             <title>AgriDairy Expert AI Pro</title>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                * {{ box-sizing: border-box; }}
-                body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f5; margin: 0; padding-bottom: 60px; height: 100vh; display: flex; flex-direction: column; }}
+                * { box-sizing: border-box; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f5; margin: 0; padding-bottom: 60px; height: 100vh; display: flex; flex-direction: column; }
                 
-                .header {{ background-color: #1b5e20; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }}
-                .login-btn {{ background-color: #ffff; color: #1b5e20; border: none; padding: 6px 14px; border-radius: 20px; font-size: 14px; cursor: pointer; font-weight: bold; }}
+                .header { background-color: #1b5e20; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }
+                .login-btn { background-color: #ffff; color: #1b5e20; border: none; padding: 6px 14px; border-radius: 20px; font-size: 14px; cursor: pointer; font-weight: bold; }
                 
                 /* विज्ञापन स्पेस */
-                .ad-placeholder {{ background-color: #f1f3f4; border: 1px dashed #bbb; color: #777; text-align: center; padding: 10px; font-size: 12px; margin: 5px auto; max-width: 800px; width: 95%; border-radius: 5px; }}
+                .ad-placeholder { background-color: #f1f3f4; border: 1px dashed #bbb; color: #777; text-align: center; padding: 10px; font-size: 12px; margin: 5px auto; max-width: 800px; width: 95%; border-radius: 5px; }
                 
-                .page-content {{ flex: 1; display: none; overflow-y: auto; padding: 15px; max-width: 800px; width: 100%; margin: 0 auto; }}
-                .active-page {{ display: flex; flex-direction: column; }}
+                .page-content { flex: 1; display: none; overflow-y: auto; padding: 15px; max-width: 800px; width: 100%; margin: 0 auto; }
+                .active-page { display: flex; flex-direction: column; }
                 
-                .chat-container {{ flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 70px; }}
-                .message {{ max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }}
-                .user-message {{ background-color: #e8f5e9; color: #1b5e20; align-self: flex-end; border-bottom-right-radius: 4px; border: 1px solid #c8e6c9; }}
-                .ai-message {{ background-color: white; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; white-space: pre-wrap; }}
+                .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 70px; }
+                .message { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }
+                .user-message { background-color: #e8f5e9; color: #1b5e20; align-self: flex-end; border-bottom-right-radius: 4px; border: 1px solid #c8e6c9; }
+                .ai-message { background-color: white; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; white-space: pre-wrap; }
                 
-                .input-container {{ background-color: white; padding: 10px; border-top: 1px solid #e0e0e0; display: flex; justify-content: center; position: fixed; bottom: 60px; left: 0; right: 0; z-index: 5; }}
-                .input-box {{ max-width: 800px; width: 100%; display: flex; gap: 8px; }}
-                input[type="text"] {{ flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; font-size: 15px; outline: none; background-color: #f9f9f9; }}
-                .send-btn {{ background-color: #1b5e20; color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; }}
+                .input-container { background-color: white; padding: 10px; border-top: 1px solid #e0e0e0; display: flex; justify-content: center; position: fixed; bottom: 60px; left: 0; right: 0; z-index: 5; }
+                .input-box { max-width: 800px; width: 100%; display: flex; gap: 8px; }
+                input[type="text"] { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; font-size: 15px; outline: none; background-color: #f9f9f9; }
+                .send-btn { background-color: #1b5e20; color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; }
                 
-                /* यह काउंटर शुरू में छुपा रहेगा */
-                .dashboard-counter {{ display: none; background-color: #ffd54f; color: #333; padding: 8px; text-align: center; font-size: 13px; font-weight: bold; position: fixed; bottom: 60px; left: 0; right: 0; z-index: 20; border-top: 1px solid #ffa000; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }}
+                /* एडमिन डैशबोर्ड काउंटर स्टाइल */
+                .dashboard-counter { display: none; background-color: #ffd54f; color: #333; padding: 8px; text-align: center; font-size: 13px; font-weight: bold; position: fixed; bottom: 60px; left: 0; right: 0; z-index: 20; border-top: 1px solid #ffa000; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
                 
-                .info-card {{ background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 4px solid #1b5e20; }}
-                table {{ width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }}
-                th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }}
-                th {{ background-color: #e8f5e9; color: #1b5e20; }}
+                .info-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 4px solid #1b5e20; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+                th { background-color: #e8f5e9; color: #1b5e20; }
                 
-                .nav-bar {{ background-color: white; border-top: 1px solid #e0e0e0; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; display: flex; justify-content: space-around; align-items: center; z-index: 10; }}
-                .nav-item {{ background: none; border: none; color: #666; display: flex; flex-direction: column; align-items: center; font-size: 12px; cursor: pointer; font-weight: 500; }}
-                .nav-item.active {{ color: #1b5e20; font-weight: bold; }}
-                .nav-icon {{ font-size: 18px; margin-bottom: 2px; }}
+                .nav-bar { background-color: white; border-top: 1px solid #e0e0e0; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; display: flex; justify-content: space-around; align-items: center; z-index: 10; }
+                .nav-item { background: none; border: none; color: #666; display: flex; flex-direction: column; align-items: center; font-size: 12px; cursor: pointer; font-weight: 500; }
+                .nav-item.active { color: #1b5e20; font-weight: bold; }
+                .nav-icon { font-size: 18px; margin-bottom: 2px; }
                 
-                .modal {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }}
-                .modal-content {{ background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; }}
-                .modal-input {{ width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }}
+                .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+                .modal-content { background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; }
+                .modal-input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
                 
-                .loading {{ font-style: italic; color: #777; align-self: flex-start; }}
+                .loading { font-style: italic; color: #777; align-self: flex-start; }
             </style>
         </head>
         <body>
@@ -93,7 +94,7 @@ def home():
                     <h3>📈 ताज़ा दूध और मंडी बाजार भाव</h3>
                     <table>
                         <tr><th>वस्तु (Item)</th><th>अनुमानित रेट (Price)</th></tr>
-                        <tr><td>गाय का दूध (प्रति लीटर - 4.0 Fat)</td><td>₹42 - ₹48</td></tr>
+                        <tr><td>गाय का दूध (प्रति营 लीटर - 4.0 Fat)</td><td>₹42 - ₹48</td></tr>
                         <tr><td>भैंस का दूध (प्रति लीटर - 6.5 Fat)</td><td>₹65 - ₹72</td></tr>
                         <tr><td>सरसों खली (प्रति क्विंटल)</td><td>₹2,800 - ₹3,100</td></tr>
                         <tr><td>पशु आहार/फीड (50KG बैग)</td><td>₹1,200 - ₹1,500</td></tr>
@@ -110,7 +111,7 @@ def home():
             </div>
 
             <div class="dashboard-counter" id="ownerDashboard">
-                👑 एडमिन डैशबोर्ड | कुल विज़िटर्स (Total Views): {VISITOR_COUNT}
+                👑 एडमिन डैशबोर्ड | कुल विज़िटर्स (Total Views): VISITOR_COUNT_PLACEHOLDER
             </div>
 
             <div class="nav-bar">
@@ -137,34 +138,34 @@ def home():
             </div>
 
             <script>
-                function switchPage(pageId, btnId) {{
+                function switchPage(pageId, btnId) {
                     document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active-page'));
                     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
                     
                     document.getElementById(pageId).classList.add('active-page');
                     document.getElementById(btnId).classList.add('active');
-                }}
+                }
 
-                function openLogin() {{ document.getElementById('loginModal').style.display = 'flex'; }}
-                function closeLogin() {{ document.getElementById('loginModal').style.display = 'none'; }}
+                function openLogin() { document.getElementById('loginModal').style.display = 'flex'; }
+                function closeLogin() { document.getElementById('loginModal').style.display = 'none'; }
                 
-                function submitLogin() {{
+                function submitLogin() {
                     let name = document.getElementById('username').value.trim();
                     let pass = document.getElementById('userphone').value.trim();
-                    if(!name) {{ alert('कृपया नाम लिखें!'); return; }}
+                    if(!name) { alert('कृपया नाम लिखें!'); return; }
                     
-                    if(pass === 'Shubham79') {{
+                    if(pass === 'Shubham79') {
                         document.getElementById('loginBtn').innerText = "👑 " + name + " (Owner)";
                         document.getElementById('ownerDashboard').style.display = 'block';
                         alert('राम-राम मालिक! आपका सीक्रेट डैशबोर्ड एक्टिव हो गया है।');
-                    }} else {{
+                    } else {
                         document.getElementById('loginBtn').innerText = "👤 " + name;
                         document.getElementById('ownerDashboard').style.display = 'none';
-                    }}
+                    }
                     closeLogin();
-                }}
+                }
 
-                async function askAI() {{
+                async function askAI() {
                     let inputField = document.getElementById('query');
                     let q = inputField.value.trim();
                     let chatContainer = document.getElementById('chatContainer');
@@ -184,7 +185,7 @@ def home():
                     chatContainer.appendChild(loadingDiv);
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                     
-                    try {{
+                    try {
                         let response = await fetch('/chat?q=' + encodeURIComponent(q));
                         let data = await response.json();
                         
@@ -192,30 +193,32 @@ def home():
                         
                         let aiDiv = document.createElement('div');
                         aiDiv.className = 'message ai-message';
-                        if(data.response) {{
+                        if(data.response) {
                             aiDiv.innerText = data.response;
-                        }} else {{
+                        } else {
                             aiDiv.innerText = 'त्रुटि: ' + (data.error || 'जवाब नहीं मिल पाया।');
-                        }}
+                        }
                         chatContainer.appendChild(aiDiv);
-                    } catch(e) {{
+                    } catch(e) {
                         chatContainer.removeChild(loadingDiv);
                         let errorDiv = document.createElement('div');
                         errorDiv.className = 'message ai-message';
                         errorDiv.innerText = 'सर्वर से संपर्क नहीं हो सका।';
                         chatContainer.appendChild(errorDiv);
-                    }}
+                    }
                     chatContainer.scrollTop = chatContainer.scrollHeight;
-                }}
+                }
             </script>
         </body>
     </html>
     """
+    # यहाँ बिना f-string के गिनती को सुरक्षित रूप से बदल रहे हैं
+    return html_content.replace("VISITOR_COUNT_PLACEHOLDER", str(VISITOR_COUNT))
 
 @app.get("/chat")
 def chat_with_ai(q: str = Query(...)):
     system_instruction = (
-        "तुम 'AgriDairy Expert AI' हो। तुम एक बेहद मददगार, समझदार and दोस्ताना AI गाइड हो। "
+        "तुम 'AgriDairy Expert AI' हो। तुम एक बेहद मददगार, समझदार और दोस्ताना AI गाइड हो। "
         "तुम यूजर की भाषा (हिंदी, इंग्लिश, या हिंग्लिश) को तुरंत समझकर उसी आसान भाषा में जवाब देते हो। "
         "जब भी कोई डेयरी का सवाल पूछे, तुम तुरंत Google Search का उपयोग करोगे और सटीक वैज्ञानिक डेटा, "
         "मात्रा (किलोग्राम/ग्राम), दवाइयों के नाम और ग्राउंड रिपोर्ट के आधार पर ही उत्तर दोगे।"

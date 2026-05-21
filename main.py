@@ -1,6 +1,7 @@
 import os
 import json
 import httpx
+import base64
 from fastapi import FastAPI, Query, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from google import genai
@@ -8,15 +9,15 @@ from google.genai import types
 
 app = FastAPI()
 
-# 🔑 सभी सीक्रेट चाबियां एन्वायरमेंट से लोड होंगी
+# 🔑 सीक्रेट चाबियां
 API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
 
-# जेमिनी एआई क्लाइंट चालू करें
+# जेमिनी क्लाइंट चालू करें
 client = genai.Client(api_key=API_KEY)
 
-# 📦 सुपाबेस डेटाबेस से संपर्क करने के लिए बैकअप-सुरक्षित फंक्शन
+# 📦 सुपाबेस डेटाबेस कनेक्शन फंक्शन
 async def query_supabase(path: str, method: str = "GET", json_data: dict = None):
     if not SUPABASE_URL or not SUPABASE_KEY:
         return []
@@ -56,90 +57,92 @@ async def home():
             <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
             <style>
                 * { box-sizing: border-box; font-family: 'Google Sans', Arial, sans-serif; }
-                body { background-color: #f8f9fa; margin: 0; padding-bottom: 80px; height: 100vh; display: flex; flex-direction: column; color: #1f1f1f; }
                 
-                /* ✨ प्रीमियम मिनिमल हेडर (Gemini Style) */
-                .header { background-color: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e0e2e6; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-                .brand-title { font-size: 19px; font-weight: 700; color: #1e5e20; display: flex; align-items: center; gap: 8px; }
-                .auth-btn { background-color: #e8f5e9; color: #1b5e20; border: none; padding: 8px 18px; border-radius: 100px; font-size: 14px; cursor: pointer; font-weight: 500; transition: 0.2s; }
-                .auth-btn:hover { background-color: #c8e6c9; }
+                /* 💻 शुद्ध Google Gemini थीम (सफ़ेद, साफ़ और बिना फालतू कलर्स के) */
+                body { background-color: #ffffff; margin: 0; padding-bottom: 85px; height: 100vh; display: flex; flex-direction: column; color: #1f1f1f; }
                 
-                .ad-placeholder { background-color: #f1f3f4; border: 1px dashed #bbb; color: #777; text-align: center; padding: 8px; font-size: 11px; margin: 5px auto; max-width: 750px; width: 95%; border-radius: 6px; }
+                .header { background-color: #ffffff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f3f4; }
+                .brand-title { font-size: 22px; font-weight: 500; color: #1f1f1f; letter-spacing: -0.5px; }
+                
+                .auth-btn { background-color: #f1f3f4; color: #1f1f1f; border: none; padding: 10px 24px; border-radius: 100px; font-size: 14px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+                .auth-btn:hover { background-color: #e8eaed; }
+                
+                .ad-placeholder { background-color: #f8f9fa; color: #70757a; text-align: center; padding: 10px; font-size: 12px; margin: 8px auto; max-width: 750px; width: 95%; border-radius: 8px; border: 1px solid #f1f3f4; }
                 
                 .page-content { flex: 1; display: none; overflow-y: auto; padding: 20px; max-width: 750px; width: 100%; margin: 0 auto; }
                 .active-page { display: flex; flex-direction: column; }
                 
-                /* 💬 एडवांस चैट बबल्स डिज़ाइन */
-                .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 40px; }
-                .message { max-width: 85%; padding: 14px 18px; border-radius: 22px; font-size: 15px; line-height: 1.6; word-wrap: break-word; animation: fadeIn 0.3s ease; }
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+                /* 💬 जेमिनी स्टाइल चैट लेआउट (बिना किसी बैकग्राउंड डिब्बों के, साफ़ टेक्स्ट और यूज़र बबल) */
+                .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px; }
+                .message { max-width: 85%; font-size: 16px; line-height: 1.6; word-wrap: break-word; animation: fadeIn 0.2s ease; color: #1f1f1f; }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 
-                .user-message { background-color: #e3f2fd; color: #0d47a1; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 2px 4px rgba(13,71,161,0.05); }
-                .ai-message { background-color: white; color: #1f1f1f; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #edf0f2; white-space: pre-wrap; }
-                .chat-img { max-width: 100%; border-radius: 12px; margin-top: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+                /* यूज़र का मैसेज हल्के ग्रे डिब्बे में दाईं तरफ */
+                .user-message { background-color: #f1f3f4; padding: 12px 20px; border-radius: 20px; align-self: flex-end; }
+                /* एआई का जवाब बिना किसी बैकग्राउंड के सीधे साफ़ टेक्स्ट में बाईं तरफ (जैसे असली जेमिनी में होता है) */
+                .ai-message { background-color: transparent; align-self: flex-start; white-space: pre-wrap; padding: 0; }
+                .chat-img { max-width: 250px; border-radius: 16px; margin-top: 8px; display: block; border: 1px solid #e8eaed; }
                 
-                /* 🚀 फ्लोटिंग जेमिनी इनपुट बार */
+                /* 🚀 जेमिनी जैसा राउंडेड इनपुट बार जो स्क्रीन पर तैरता है */
                 .input-container { background: transparent; padding: 15px; display: flex; justify-content: center; position: fixed; bottom: 65px; left: 0; right: 0; z-index: 5; }
-                .input-box { max-width: 750px; width: 100%; display: flex; gap: 8px; align-items: center; background: white; padding: 6px 12px; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.07); border: 1px solid #e0e2e6; }
-                input[type="text"] { flex: 1; padding: 10px 14px; border: none; font-size: 15px; outline: none; background: transparent; color: #1f1f1f; }
+                .input-box { max-width: 750px; width: 100%; display: flex; gap: 8px; align-items: center; background: #f1f3f4; padding: 8px 16px; border-radius: 100px; transition: background 0.2s; }
+                .input-box:focus-within { background: #e8eaed; }
+                input[type="text"] { flex: 1; padding: 10px 12px; border: none; font-size: 16px; outline: none; background: transparent; color: #1f1f1f; }
                 
-                .icon-btn { background: transparent; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: #5f6368; }
-                .icon-btn:hover { background: #f1f3f4; color: #1f1f1f; }
-                .send-btn { background-color: #1b5e20; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
-                .send-btn:hover { background-color: #144316; }
+                .icon-btn { background: transparent; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #444746; transition: background 0.2s; }
+                .icon-btn:hover { background: rgba(0,0,0,0.05); }
+                .send-btn { background: transparent; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #1f1f1f; }
                 
-                /* 📊 प्रीमियम कार्ड और टेबल डिज़ाइन */
-                .info-card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 20px; border: 1px solid #edf0f2; }
-                .info-card h3 { margin-top: 0; color: #1b5e20; font-size: 17px; font-weight: 700; }
-                table { width: 100%; border-collapse: collapse; margin-top: 12px; border-radius: 8px; overflow: hidden; }
-                th, td { padding: 12px 14px; text-align: left; font-size: 14px; border-bottom: 1px solid #edf0f2; }
-                th { background-color: #f8f9fa; color: #5f6368; font-weight: 500; }
+                /* 📊 मिनिमल कार्ड्स और टेबल्स */
+                .info-card { background: #ffffff; padding: 24px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #f1f3f4; }
+                .info-card h3 { margin-top: 0; color: #1f1f1f; font-size: 18px; font-weight: 500; }
+                table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+                th, td { padding: 14px; text-align: left; font-size: 15px; border-bottom: 1px solid #f1f3f4; }
+                th { color: #70757a; font-weight: 500; background: none; }
                 
-                /* 📱 मॉडर्न बॉटम नेविगेशन बार */
-                .nav-bar { background-color: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px); border-top: 1px solid #e0e2e6; position: fixed; bottom: 0; left: 0; right: 0; height: 65px; display: flex; justify-content: space-around; align-items: center; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.02); }
-                .nav-item { background: none; border: none; color: #5f6368; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; font-weight: 500; gap: 4px; transition: 0.2s; }
-                .nav-item.active { color: #1b5e20; font-weight: 700; }
-                .nav-icon { font-size: 20px; }
+                /* 📱 साफ़ सुथरा बॉटम नेविगेशन */
+                .nav-bar { background-color: #ffffff; border-top: 1px solid #f1f3f4; position: fixed; bottom: 0; left: 0; right: 0; height: 65px; display: flex; justify-content: space-around; align-items: center; z-index: 10; }
+                .nav-item { background: none; border: none; color: #70757a; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; font-weight: 500; gap: 4px; }
+                .nav-item.active { color: #1f1f1f; font-weight: 700; }
+                .nav-icon { font-size: 22px; }
                 
-                /* 👑 एडमिन डिज़ाइन */
-                .dashboard-counter { background: linear-gradient(135deg, #fff9c4, #fff59d); color: #5d4037; padding: 12px; text-align: center; font-size: 14px; font-weight: 700; margin-bottom: 20px; border-radius: 12px; border: 1px solid #fbc02d; }
-                .admin-section { background: #fafafa; padding: 18px; border-radius: 14px; border: 1px solid #e0e2e6; margin-bottom: 20px; }
-                .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(4px); }
-                .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 360px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-                .modal-input { width: 100%; padding: 12px 16px; margin: 10px 0; border: 1px solid #e0e2e6; border-radius: 10px; font-size: 14px; outline: none; background: #f8f9fa; }
+                .dashboard-counter { background: #f8f9fa; color: #1f1f1f; padding: 14px; text-align: center; font-size: 14px; font-weight: 500; margin-bottom: 20px; border-radius: 12px; border: 1px solid #f1f3f4; }
+                .admin-section { background: #ffffff; padding: 20px; border-radius: 16px; border: 1px solid #f1f3f4; margin-bottom: 20px; }
+                .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(2px); }
+                .modal-content { background: white; padding: 32px; border-radius: 24px; width: 90%; max-width: 360px; text-align: center; }
+                .modal-input { width: 100%; padding: 14px; margin: 12px 0; border: 1px solid #chchch; border-radius: 12px; font-size: 15px; outline: none; background: #f8f9fa; }
                 
-                /* 🌊 Gemini जैसा एनिमेटेड ग्रैडिएंट लोडिंग इंडिकेटर */
-                .gemini-loader { display: none; width: 100%; height: 4px; background: linear-gradient(to right, #4285f4, #34a853, #fbbc05, #ea4335); background-size: 400% 400%; animation: shimmer 2s linear infinite; position: fixed; bottom: 140px; left: 0; z-index: 100; }
+                /* 🌊 जेमिनी जैसा पतला प्रोग्रेस बार */
+                .gemini-loader { display: none; width: 100%; height: 3px; background: linear-gradient(to right, #4285f4, #34a853, #fbbc05, #ea4335); background-size: 400% 400%; animation: shimmer 1.5s linear infinite; position: fixed; bottom: 145px; left: 0; z-index: 100; }
                 @keyframes shimmer { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
             </style>
         </head>
         <body>
 
             <div class="header">
-                <div class="brand-title">✨ AgriDairy Expert Pro</div>
+                <div class="brand-title">Gemini AgriDairy</div>
                 <button class="auth-btn" id="authBtn" onclick="handleAuthClick()">लॉगिन</button>
             </div>
             
-            <div class="ad-placeholder">Google Ads यहाँ दिखाई देंगे (यूज़र को बिना डिस्टर्ब किए)</div>
+            <div class="ad-placeholder">Google Ads यहाँ दिखाई देंगे</div>
             <div class="gemini-loader" id="globalSpinner"></div>
 
-            <div id="welcomePage" class="page-content active-page" style="text-align: center; padding-top: 60px;">
-                <img src="https://img.icons8.com/color/96/cow.png" alt="Cow" style="margin-bottom: 20px;">
-                <h2 style="font-weight:700; font-size:24px;">डिजिटल डेयरी फार्मिंग में आपका स्वागत है!</h2>
-                <p style="color: #5f6368; font-size: 15px; padding: 0 20px; line-height:1.6;">एआई चैट गाइड, पशु रिकॉर्ड, दूध डायरी का हिसाब और लाइव मंडी रेट देखने के लिए कृपया सुरक्षित लॉगिन करें।</p>
-                <button class="auth-btn" style="margin-top: 25px; padding: 14px 45px; background-color:#1b5e20; color:white; font-size:15px; box-shadow: 0 4px 12px rgba(27,94,32,0.2);" onclick="handleAuthClick()">लॉगिन करें</button>
+            <div id="welcomePage" class="page-content active-page" style="text-align: center; padding-top: 80px;">
+                <h2 style="font-weight:400; font-size:28px; margin-bottom:10px;">नमस्ते, मैं आपका डेयरी गाइड हूँ</h2>
+                <p style="color: #70757a; font-size: 16px; padding: 0 40px; line-height:1.6; margin-bottom:30px;">पशुओं के स्वास्थ्य, रोगों के सटीक इलाज या दूध डायरी का हिसाब रखने के लिए सुरक्षित शुरुआत करें।</p>
+                <button class="auth-btn" style="background-color:#1f1f1f; color:white; padding:14px 40px;" onclick="handleAuthClick()">लॉगिन करें</button>
             </div>
 
             <div id="chatPage" class="page-content">
                 <div class="chat-container" id="chatContainer">
-                    <div class="message ai-message">राम-राम भाई! मैं आपका डेयरी एक्सपर्ट AI हूँ। पशुपालन या बीमारियों से जुड़ा कोई भी वैज्ञानिक सवाल यहाँ पूछें। आप नीचे कैमरा आइकॉन दबाकर फोटो भी भेज सकते हैं।</div>
+                    <div class="message ai-message">राम-राम भाई! मैं आपका जेमिनी डेयरी एक्सपर्ट हूँ। पशुपालन या बीमारियों से जुड़ा कोई भी सवाल पूछें, या नीचे कैमरा बटन दबाकर सीधे फोटो भेजें।</div>
                 </div>
                 <div class="input-container">
                     <div class="input-box">
                         <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
                         <button class="icon-btn" onclick="document.getElementById('imageInput').click()">📷</button>
                         <button class="icon-btn" id="micBtn" onclick="startVoiceRecognition()">🎤</button>
-                        <input type="text" id="query" placeholder="यहाँ अपना सवाल लिखें..." onkeypress="if(event.key === 'Enter') askAI()">
+                        <input type="text" id="query" placeholder="यहाँ संदेश लिखें..." onkeypress="if(event.key === 'Enter') askAI()">
                         <button class="send-btn" onclick="askAI()">➔</button>
                     </div>
                 </div>
@@ -147,11 +150,11 @@ async def home():
 
             <div id="ratePage" class="page-content">
                 <div class="info-card">
-                    <h3>📈 ताज़ा दूध और मंडी बाजार भाव</h3>
+                    <h3>📈 ताज़ा बाज़ार और मंडी भाव</h3>
                     <table>
-                        <tr><th>वस्तु (Item)</th><th>ताज़ा रेट (Price)</th></tr>
-                        <tr><td>गाय का दूध (प्रति लीटर - 4.0 Fat)</td><td id="lbl_cow" style="font-weight:700; color:#1b5e20;">COW_RATE_PLACEHOLDER</td></tr>
-                        <tr><td>भैंस का दूध (प्रति लीटर - 6.5 Fat)</td><td id="lbl_buff" style="font-weight:700; color:#1b5e20;">BUFF_RATE_PLACEHOLDER</td></tr>
+                        <tr><th>वस्तु (Item)</th><th>भाव (Price)</th></tr>
+                        <tr><td>गाय का दूध (प्रति लीटर - 4.0 Fat)</td><td id="lbl_cow" style="font-weight:700;">COW_RATE_PLACEHOLDER</td></tr>
+                        <tr><td>भैंस का दूध (प्रति लीटर - 6.5 Fat)</td><td id="lbl_buff" style="font-weight:700;">BUFF_RATE_PLACEHOLDER</td></tr>
                         <tr><td>सरसों खली (प्रति क्विंटल)</td><td id="lbl_must">MUST_RATE_PLACEHOLDER</td></tr>
                         <tr><td>पशु आहार/फीड (50KG बैग)</td><td id="lbl_bag">BAG_RATE_PLACEHOLDER</td></tr>
                     </table>
@@ -161,58 +164,58 @@ async def home():
             <div id="dairyPage" class="page-content">
                 <div class="info-card">
                     <h3>📋 नया पशु रिकॉर्ड जोड़ें</h3>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                        <input type="text" id="cattleName" class="modal-input" placeholder="गाय/भैंस का नाम या टैग नंबर" style="flex:1; margin:0;">
-                        <select id="cattleType" style="padding:12px; border-radius:10px; border:1px solid #e0e2e6; background:#f8f9fa;">
+                    <div style="display:flex; gap:12px; margin-bottom:12px;">
+                        <input type="text" id="cattleName" class="modal-input" placeholder="गाय/भैंस का नाम या नंबर" style="flex:1; margin:0;">
+                        <select id="cattleType" style="padding:12px; border-radius:12px; border:1px solid #dadce0; background:#ffffff;">
                             <option value="गाय">गाय 🐄</option>
                             <option value="भैंस">भैंस 🐃</option>
                         </select>
                     </div>
-                    <label style="font-size:12px; color:#5f6368; display:block; margin-top:10px;">संभावित बियाने/AI की तारीख:</label>
-                    <input type="date" id="cattleDate" class="modal-input" style="margin-top:5px;">
-                    <button class="auth-btn" style="width:100%; margin-top:5px; background-color:#1b5e20; color:white; padding:12px;" onclick="addCattleBackend()">पशु रिकॉर्ड सुरक्षित करें</button>
-                    <div id="cattleList" style="margin-top:15px; font-size:14px; color:#1f1f1f; line-height:1.6;"></div>
+                    <label style="font-size:13px; color:#70757a;">संभावित बियाने/AI की तारीख:</label>
+                    <input type="date" id="cattleDate" class="modal-input" style="margin-top:6px;">
+                    <button class="auth-btn" style="width:100%; background:#1f1f1f; color:white;" onclick="addCattleBackend()">सुरक्षित करें</button>
+                    <div id="cattleList" style="margin-top:20px; font-size:15px; line-height:1.6;"></div>
                 </div>
 
                 <div class="info-card">
-                    <h3>🥛 दूध का हिसाब (मासिक डायरी)</h3>
-                    <div style="display:flex; gap:8px; margin-bottom:10px;">
+                    <h3>🥛 मासिक दूध डायरी</h3>
+                    <div style="display:flex; gap:12px; margin-bottom:12px;">
                         <input type="number" id="milkLitres" placeholder="कुल लीटर दूध" class="modal-input" style="width:50%; margin:0;">
-                        <input type="number" id="milkFat" placeholder="फैट (Fat) जैसे: 4.5" class="modal-input" style="width:50%; margin:0;">
+                        <input type="number" id="milkFat" placeholder="फैट (Fat)" class="modal-input" style="width:50%; margin:0;">
                     </div>
-                    <button class="auth-btn" style="width:100%; background-color:#2e7d32; color:white; padding:12px;" onclick="addMilkBackend()">हिसाब जोड़ें</button>
-                    <div id="milkResult" style="margin-top:15px; font-weight:700; color:#1b5e20;"></div>
+                    <button class="auth-btn" style="width:100%; background:#1f1f1f; color:white;" onclick="addMilkBackend()">हिसाब जोड़ें</button>
+                    <div id="milkResult" style="margin-top:15px; font-weight:700;"></div>
                 </div>
             </div>
 
             <div id="schemePage" class="page-content">
-                <div class="info-card" style="border-left: 4px solid #1a73e8;">
-                    <h3 id="lbl_sch_title" style="color:#1a73e8;">SCHEME_TITLE_PLACEHOLDER</h3>
-                    <p id="lbl_sch_detail" style="line-height:1.7; color:#3c4043; font-size:15px;">SCHEME_DETAIL_PLACEHOLDER</p>
+                <div class="info-card">
+                    <h3 id="lbl_sch_title" style="font-size:20px; font-weight:500;">SCHEME_TITLE_PLACEHOLDER</h3>
+                    <p id="lbl_sch_detail" style="line-height:1.7; color:#4a4a4a; font-size:16px;">SCHEME_DETAIL_PLACEHOLDER</p>
                 </div>
             </div>
 
             <div id="adminPage" class="page-content">
                 <div class="dashboard-counter">
-                    👑 एडमिन डैशबोर्ड | कुल विज़िटर्स (Total Views): VISITOR_COUNT_PLACEHOLDER
+                    👑 एडमिन डैशबोर्ड | कुल विज़िटर्स: VISITOR_COUNT_PLACEHOLDER
                 </div>
                 <div class="admin-section">
                     <h4>🔄 मंडी रेट अपडेट करें</h4>
                     <input type="text" id="txt_cow" class="modal-input" placeholder="गाय दूध का नया रेट">
                     <input type="text" id="txt_buff" class="modal-input" placeholder="भैंस दूध का नया रेट">
-                    <button class="auth-btn" style="width:100%; background:#e65100; color:white;" onclick="updateRatesBackend()">मंडी रेट लाइव बदलें</button>
+                    <button class="auth-btn" style="background:#1f1f1f; color:white;" onclick="updateRatesBackend()">मंडी रेट बदलें</button>
                 </div>
                 <div class="admin-section">
                     <h4>🔄 सरकारी योजना बदलें</h4>
                     <input type="text" id="txt_sch_title" class="modal-input" placeholder="योजना का नाम">
-                    <textarea id="txt_sch_detail" class="modal-input" placeholder="योजना की पूरी डिटेल लिखें" style="height:80px; font-family:inherit; border-radius:10px; border:1px solid #e0e2e6; padding:10px; width:100%; outline:none; background:#f8f9fa;"></textarea>
-                    <button class="auth-btn" style="width:100%; background:#e65100; color:white; margin-top:10px;" onclick="updateSchemeBackend()">नई योजना लाइव अपलोड करें</button>
+                    <textarea id="txt_sch_detail" class="modal-input" placeholder="योजना की पूरी डिटेल लिखें" style="height:100px; font-family:inherit; border-radius:12px; border:1px solid #dadce0; padding:12px; width:100%; outline:none; background:#ffffff;"></textarea>
+                    <button class="auth-btn" style="background:#1f1f1f; color:white; margin-top:12px;" onclick="updateSchemeBackend()">योजना अपलोड करें</button>
                 </div>
             </div>
 
             <div class="nav-bar" id="bottomNav" style="display:none;">
                 <button class="nav-item active" id="btn-chat" onclick="switchPage('chatPage', 'btn-chat')">
-                    <span class="nav-icon">💬</span><span>एआई चैट</span>
+                    <span class="nav-icon">💬</span><span>चैट</span>
                 </button>
                 <button class="nav-item" id="btn-rate" onclick="switchPage('ratePage', 'btn-rate')">
                     <span class="nav-icon">📈</span><span>मंडी रेट</span>
@@ -224,23 +227,23 @@ async def home():
                     <span class="nav-icon">📜</span><span>योजनाएं</span>
                 </button>
                 <button class="nav-item" id="btn-admin" style="display:none;" onclick="switchPage('adminPage', 'btn-admin')">
-                    <span class="nav-icon">👑</span><span>कंट्रोल Panel</span>
+                    <span class="nav-icon">👑</span><span>कंट्रोल</span>
                 </button>
             </div>
 
             <div class="modal" id="authModal">
                 <div class="modal-content" id="loginBox">
-                    <h3 style="font-weight:700; margin-top:0;">🐄 किसान भाई लॉगिन</h3>
+                    <h3 style="font-weight:500; margin-top:0;">लॉगिन</h3>
                     <input type="text" id="username" class="modal-input" placeholder="अपना नाम लिखें">
-                    <input type="text" id="userphone" class="modal-input" placeholder="10 अंकों का मोबाइल नंबर / एडमिन पासवर्ड">
-                    <button class="auth-btn" style="width:100%; background-color:#1b5e20; color:white; padding:12px; margin-top:10px;" onclick="sendDemoOTP()">OTP भेजें</button>
-                    <button class="auth-btn" style="width:100%; margin-top:5px; background:#f1f3f4; color:#5f6368;" onclick="closeAuthModal()">बंद करें</button>
+                    <input type="text" id="userphone" class="modal-input" placeholder="मोबाइल नंबर / एडमिन पासवर्ड">
+                    <button class="auth-btn" style="width:100%; background-color:#1f1f1f; color:white; padding:14px; margin-top:10px;" onclick="sendDemoOTP()">OTP भेजें</button>
+                    <button class="auth-btn" style="width:100%; margin-top:6px; background:#f1f3f4; color:#1f1f1f;" onclick="closeAuthModal()">बंद करें</button>
                 </div>
                 <div class="modal-content" id="otpBox" style="display:none;">
-                    <h3>🔐 ओटीपी वेरिफिकेशन</h3>
-                    <p style="font-size:13px; color:#ff6d00; font-weight:bold;">सुरक्षा के लिए डेमो OTP '1234' डालें</p>
-                    <input type="number" id="otpInput" class="modal-input" placeholder="4 अंकों का OTP कोड दर्ज करें">
-                    <button class="auth-btn" style="width:100%; background-color:#1b5e20; color:white; padding:12px; margin-top:10px;" onclick="verifyDemoOTP()">सत्यापित करें</button>
+                    <h3>🔐 ओटीपी कोड</h3>
+                    <p style="font-size:13px; color:#ff6d00;">डेमो OTP '1234' दर्ज करें</p>
+                    <input type="number" id="otpInput" class="modal-input" placeholder="4 अंकों का OTP डालें">
+                    <button class="auth-btn" style="width:100%; background-color:#1f1f1f; color:white; padding:14px; margin-top:10px;" onclick="verifyDemoOTP()">सत्यापित करें</button>
                 </div>
             </div>
 
@@ -278,7 +281,6 @@ async def home():
                         document.getElementById('bottomNav').style.display = 'none';
                         document.getElementById('btn-admin').style.display = 'none';
                         switchPage('welcomePage');
-                        alert('राम-राम भाई! आप लॉगआउट हो चुके हैं।');
                     } else {
                         document.getElementById('authModal').style.display = 'flex';
                         document.getElementById('loginBox').style.display = 'block';
@@ -291,7 +293,7 @@ async def home():
                 function sendDemoOTP() {
                     currentUserName = document.getElementById('username').value.trim();
                     currentUserPhone = document.getElementById('userphone').value.trim();
-                    if(!currentUserName || !currentUserPhone) { alert('कृपया पूरा नाम भरें!'); return; }
+                    if(!currentUserName || !currentUserPhone) { alert('कृपया पूरा नाम और नंबर भरें!'); return; }
                     
                     if(currentUserPhone === 'Shubham79') {
                         localStorage.setItem("dairy_phone", "Shubham79");
@@ -299,8 +301,7 @@ async def home():
                         executeLogin(true);
                         return;
                     }
-                    if(currentUserPhone.length < 10) { alert('कृपया सही 10 अंकों का मोबाइल नंबर डालें!'); return; }
-                    
+                    if(currentUserPhone.length < 10) { alert('सही मोबाइल नंबर डालें!'); return; }
                     document.getElementById('loginBox').style.display = 'none';
                     document.getElementById('otpBox').style.display = 'block';
                 }
@@ -311,16 +312,13 @@ async def home():
                         localStorage.setItem("dairy_phone", currentUserPhone);
                         localStorage.setItem("dairy_name", currentUserName);
                         executeLogin(false);
-                    } else {
-                        alert('गलत OTP! कृपया 1234 डालें।');
-                    }
+                    } else { alert('गलत OTP! 1234 डालें।'); }
                 }
 
                 function executeLogin(isAdmin) {
                     closeAuthModal();
                     document.getElementById('bottomNav').style.display = 'flex';
                     document.getElementById('authBtn').innerText = "लॉगआऊट";
-                    
                     if(isAdmin) {
                         document.getElementById('btn-admin').style.display = 'flex';
                         switchPage('adminPage', 'btn-admin');
@@ -332,15 +330,12 @@ async def home():
 
                 function startVoiceRecognition() {
                     window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    if(!window.SpeechRecognition) { alert("आपका ब्राउज़र बोलकर टाइप करने का समर्थन नहीं करता है।"); return; }
-                    
+                    if(!window.SpeechRecognition) { alert("माइक सपोर्ट नहीं कर रहा है।"); return; }
                     const recognition = new SpeechRecognition();
                     recognition.lang = 'hi-IN';
                     document.getElementById('micBtn').innerText = "🛑";
-                    
                     recognition.onresult = (event) => {
-                        const text = event.results[0][0].transcript;
-                        document.getElementById('query').value = text;
+                        document.getElementById('query').value = event.results[0][0].transcript;
                     };
                     recognition.onend = () => { document.getElementById('micBtn').innerText = "🎤"; };
                     recognition.start();
@@ -349,11 +344,10 @@ async def home():
                 function handleImageUpload(input) {
                     const file = input.files[0];
                     if(!file) return;
-                    
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         base64ImageStr = e.target.result.split(',')[1];
-                        alert('📷 फोटो जुड़ गई है! अब अपना सवाल लिखकर भेजें दबाएं।');
+                        alert('📷 फोटो अटैच हो गई है! अब सवाल भेजें।');
                     };
                     reader.readAsDataURL(file);
                 }
@@ -368,7 +362,7 @@ async def home():
                     
                     let userDiv = document.createElement('div');
                     userDiv.className = 'message user-message';
-                    userDiv.innerText = q || "📷 फोटो अपलोड की गई";
+                    userDiv.innerText = q || "📷 फोटो सेंड की गई";
                     if(base64ImageStr) {
                         let img = document.createElement('img');
                         img.className = 'chat-img';
@@ -394,12 +388,12 @@ async def home():
                         
                         let aiDiv = document.createElement('div');
                         aiDiv.className = 'message ai-message';
-                        aiDiv.innerText = data.response || "त्रुटि: जवाब नहीं मिल सका।";
+                        aiDiv.innerText = data.response || "जवाब नहीं मिल पाया भाई।";
                         chatContainer.appendChild(aiDiv);
                     } catch(e) {
                         let aiDiv = document.createElement('div');
                         aiDiv.className = 'message ai-message';
-                        aiDiv.innerText = 'कनेक्शन धीमा है भाई, कृपया एक बार फिर कोशिश करें।';
+                        aiDiv.innerText = 'सर्वर थोड़ा धीमा है, कृपया एक बार दोबारा प्रयास करें भाई।';
                         chatContainer.appendChild(aiDiv);
                     }
                     document.getElementById('globalSpinner').style.display = 'none';
@@ -447,7 +441,7 @@ async def home():
                         list.innerHTML = "<b>सुरक्षित पशु रिकॉर्ड:</b><br>";
                         if(data && data.length > 0) {
                             data.forEach(c => {
-                                list.innerHTML += `• <b>${c.name}</b> (${c.type}) - संभावित तारीख: ${c.date_text}<br>`;
+                                list.innerHTML += `• <b>${c.name}</b> (${c.type}) - तारीख: ${c.date_text}<br>`;
                             });
                         }
                     } catch(e) {}
@@ -457,9 +451,7 @@ async def home():
                     let lit = parseFloat(document.getElementById('milkLitres').value);
                     let fat = parseFloat(document.getElementById('milkFat').value);
                     if(!lit || !fat) { alert('सही मात्रा भरें!'); return; }
-                    
-                    let price = fat * 11;
-                    let earn = lit * price;
+                    let earn = lit * (fat * 11);
                     
                     await fetch('/add_milk', {
                         method: 'POST',
@@ -480,7 +472,7 @@ async def home():
                         if(data && data.length > 0) {
                             data.forEach(m => { totalL += m.litres; totalE += m.earning; });
                         }
-                        resDiv.innerHTML = `🥛 कुल दूध: ${totalL.toFixed(1)} लीटर | 💰 कुल जमा राशि: ₹${totalE.toFixed(2)}`;
+                        resDiv.innerHTML = `🥛 कुल दूध: ${totalL.toFixed(1)} लीटर | 💰 कुल राशि: ₹${totalE.toFixed(2)}`;
                     } catch(e) {}
                 }
 
@@ -497,7 +489,7 @@ async def home():
                     let detail = document.getElementById('txt_sch_detail').value.trim();
                     if(title) await fetch('/update_setting?key=scheme_title&val=' + encodeURIComponent(title));
                     if(detail) await fetch('/update_setting?key=scheme_detail&val=' + encodeURIComponent(detail));
-                    alert('नई योजना लाइव हो चुकी है।');
+                    alert('योजना लाइव हो चुकी है।');
                 }
             </script>
         </body>
@@ -513,6 +505,7 @@ async def home():
     
     return html_content
 
+# 🚀 इमेज फिक्स के साथ एडवांस जेमिनी प्रो बैकएंड
 @app.post("/chat_pro")
 async def chat_pro(req: Request):
     body = await req.json()
@@ -530,8 +523,14 @@ async def chat_pro(req: Request):
     contents = []
     if query:
         contents.append(query)
+    
+    # 📷 नया जेमिनी प्रो इमेज पार्सिंग स्ट्रक्चर जो एरर 400 को खत्म करेगा
     if image_base64:
-        contents.append(types.Part.from_bytes(data=image_base64.encode(), mime_type="image/jpeg"))
+        try:
+            image_bytes = base64.b64decode(image_base64)
+            contents.append(types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"))
+        except Exception as e:
+            return {"response": f"फोटो को समझने में समस्या आई भाई। कृपया दोबारा खींचें।"}
 
     try:
         res = client.models.generate_content(
@@ -540,18 +539,18 @@ async def chat_pro(req: Request):
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 tools=[types.Tool(google_search=types.GoogleSearch())],
-                temperature=0.3
+                temperature=0.2
             )
         )
         ai_response = res.text
         
-        # 🛡️ बैकअप फिक्स: अगर सुपाबेस बिजी भी हो, तो भी लोकल रिपॉन्स किसानों को डिलीवर होगा
+        # सुपाबेस में चैट सेव करें
         await query_supabase("chat_history", "POST", {"phone": phone, "sender": "user", "message": query or "📷 फोटो अपलोड"})
         await query_supabase("chat_history", "POST", {"phone": phone, "sender": "ai", "message": ai_response})
         
         return {"response": ai_response}
     except Exception as e:
-        return {"response": f"क्षमा करें भाई, समस्या आई: {str(e)}"}
+        return {"response": "नमस्ते भाई, इस समय नेटवर्क थोड़ा धीमा है, कृपया एक बार पुनः अपना सवाल भेजें।"}
 
 @app.get("/get_chat")
 async def get_chat(phone: str):

@@ -58,7 +58,7 @@ async def home():
             <style>
                 * { box-sizing: border-box; font-family: 'Google Sans', Arial, sans-serif; }
                 
-                /* 🌌 प्रीमियम डार्क थीम इंटरफेस (हूबहू स्क्रीनशॉट के स्टाइल में) */
+                /* 🌌 प्रीमियम डार्क थीम इंटरफेस */
                 body { background-color: #131314; margin: 0; padding-bottom: 85px; height: 100vh; display: flex; flex-direction: column; color: #e3e3e3; }
                 
                 .header { background-color: #131314; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2f31; }
@@ -100,7 +100,7 @@ async def home():
                 /* 📱 डार्क बॉटम नेविगेशन */
                 .nav-bar { background-color: #131314; border-top: 1px solid #2d2f31; position: fixed; bottom: 0; left: 0; right: 0; height: 65px; display: flex; justify-content: space-around; align-items: center; z-index: 10; }
                 .nav-item { background: none; border: none; color: #8e918f; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; font-weight: 500; gap: 4px; }
-                .nav-item.active { color: #ffff; font-weight: 700; }
+                .nav-item.active { color: #ffffff; font-weight: 700; }
                 .nav-icon { font-size: 22px; }
                 
                 .dashboard-counter { background: #1e1f20; color: #e3e3e3; padding: 14px; text-align: center; font-size: 14px; font-weight: 500; margin-bottom: 20px; border-radius: 12px; border: 1px solid #2d2f31; }
@@ -118,106 +118,4 @@ async def home():
 
             <div class="header">
                 <div class="brand-title">AgriDairy Expert AI</div>
-                <button class="auth-btn" id="authBtn" onclick="handleAuthClick()">लॉगिन</button>
-            </div>
-            
-            <div class="ad-placeholder">Google Ads यहाँ दिखाई देंगे</div>
-            <div class="gemini-loader" id="globalSpinner"></div>
-
-            <div id="welcomePage" class="page-content active-page" style="text-align: center; padding-top: 80px;">
-                <h2 style="font-weight:400; font-size:28px; margin-bottom:10px;">नमस्ते, मैं आपका डेयरी गाइड हूँ</h2>
-                <p style="color: #8e918f; font-size: 16px; padding: 0 40px; line-height:1.6; margin-bottom:30px;">पशुओं के स्वास्थ्य, रोगों के सटीक इलाज या दूध डायरी का हिसाब रखने के लिए सुरक्षित शुरुआत करें।</p>
-                <button class="auth-btn" style="background-color:#e3e3e3; color:#131314; padding:14px 40px;" onclick="handleAuthClick()">लॉगिन करें</button>
-            </div>
-
-            <div id="chatPage" class="page-content">
-                <div class="chat-container" id="chatContainer">
-                    <div class="message ai-message">राम-राम भाई! मैं आपका AgriDairy Expert AI हूँ। पशुपालन या बीमारियों से जुड़ा कोई भी सवाल पूछें, या नीचे कैमरा बटन दबाकर सीधे फोटो भेजें।</div>
-                </div>
-                <div class="input-container">
-                    <div class="input-box">
-                        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
-                        <button class="icon-btn" onclick="document.getElementById('imageInput').click()">📷</button>
-                        <button class="icon-btn" id="micBtn" onclick="startVoiceRecognition()">🎤</button>
-                        <input type="text" id="query" placeholder="यहाँ संदेश लिखें..." onkeypress="if(event.key === 'Enter') askAI()">
-                        <button class="send-btn" onclick="askAI()">➔</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="ratePage" class="page-content">
-                <div class="info-card">
-                    <h3>📈 ताज़ा बाज़ार और मंडी भाव</h3>
-                    <table>
-                        <tr><th>वस्तु (Item)</th><th>भाव (Price)</th></tr>
-                        <tr><td>गाय का दूध (प्रति लीटर - 4.0 Fat)</td><td id="lbl_cow" style="font-weight:700;">COW_RATE_PLACEHOLDER</td></tr>
-                        <tr><td>भैंस का दूध (प्रति लीटर - 6.5 Fat)</td><td id="lbl_buff" style="font-weight:700;">BUFF_RATE_PLACEHOLDER</td></tr>
-                        <tr><td>सरसों खली (प्रति क्विंटल)</td><td id="lbl_must">MUST_RATE_PLACEHOLDER</td></tr>
-                        <tr><td>पशु आहार/फीड (50KG बैग)</td><td id="lbl_bag">BAG_RATE_PLACEHOLDER</td></tr>
-                    </table>
-                </div>
-            </div>
-
-            <div id="dairyPage" class="page-content">
-                <div class="info-card">
-                    <h3>📋 नया पशु रिकॉर्ड जोड़ें</h3>
-                    <div style="display:flex; gap:12px; margin-bottom:12px;">
-                        <input type="text" id="cattleName" class="modal-input" placeholder="गाय/भैंस का नाम या नंबर" style="flex:1; margin:0;">
-                        <select id="cattleType" style="padding:12px; border-radius:12px; border:1px solid #2d2f31; background:#131314; color:#e3e3e3;">
-                            <option value="गाय">गाय 🐄</option>
-                            <option value="भैंस">भैंस 🐃</option>
-                        </select>
-                    </div>
-                    <label style="font-size:13px; color:#8e918f;">संभावित बियाने/AI की तारीख:</label>
-                    <input type="date" id="cattleDate" class="modal-input" style="margin-top:6px;">
-                    <button class="auth-btn" style="width:100%; background:#e3e3e3; color:#131314;" onclick="addCattleBackend()">सुरक्षित करें</button>
-                    <div id="cattleList" style="margin-top:20px; font-size:15px; line-height:1.6;"></div>
-                </div>
-
-                <div class="info-card">
-                    <h3>🥛 मासिक दूध डायरी</h3>
-                    <div style="display:flex; gap:12px; margin-bottom:12px;">
-                        <input type="number" id="milkLitres" placeholder="कुल लीटर दूध" class="modal-input" style="width:50%; margin:0;">
-                        <input type="number" id="milkFat" placeholder="फैट (Fat)" class="modal-input" style="width:50%; margin:0;">
-                    </div>
-                    <button class="auth-btn" style="width:100%; background:#e3e3e3; color:#131314;" onclick="addMilkBackend()">हिसाब जोड़ें</button>
-                    <div id="milkResult" style="margin-top:15px; font-weight:700;"></div>
-                </div>
-            </div>
-
-            <div id="schemePage" class="page-content">
-                <div class="info-card">
-                    <h3 id="lbl_sch_title" style="font-size:20px; font-weight:500;">SCHEME_TITLE_PLACEHOLDER</h3>
-                    <p id="lbl_sch_detail" style="line-height:1.7; color:#c4c7c5; font-size:16px;">SCHEME_DETAIL_PLACEHOLDER</p>
-                </div>
-            </div>
-
-            <div id="adminPage" class="page-content">
-                <div class="dashboard-counter">
-                    👑 एडमिन डैशबोर्ड | कुल विज़िटर्स: VISITOR_COUNT_PLACEHOLDER
-                </div>
-                <div class="admin-section">
-                    <h4>🔄 मंडी रेट अपडेट करें</h4>
-                    <input type="text" id="txt_cow" class="modal-input" placeholder="गाय दूध का नया रेट">
-                    <input type="text" id="txt_buff" class="modal-input" placeholder="भैंस दूध का नया रेट">
-                    <button class="auth-btn" style="background:#e3e3e3; color:#131314;" onclick="updateRatesBackend()">मंडी रेट बदलें</button>
-                </div>
-                <div class="admin-section">
-                    <h4>🔄 सरकारी योजना बदलें</h4>
-                    <input type="text" id="txt_sch_title" class="modal-input" placeholder="योजना का नाम">
-                    <textarea id="txt_sch_detail" class="modal-input" placeholder="योजना की पूरी डिटेल लिखें" style="height:100px; font-family:inherit; border-radius:12px; border:1px solid #2d2f31; padding:12px; width:100%; outline:none; background:#131314; color:#e3e3e3;"></textarea>
-                    <button class="auth-btn" style="background:#e3e3e3; color:#131314; margin-top:12px;" onclick="updateSchemeBackend()">योजना अपलोड करें</button>
-                </div>
-            </div>
-
-            <div class="nav-bar" id="bottomNav" style="display:none;">
-                <button class="nav-item active" id="btn-chat" onclick="switchPage('chatPage', 'btn-chat')">
-                    <span class="nav-icon">💬</span><span>चैट</span>
-                </button>
-                <button class="nav-item" id="btn-rate" onclick="switchPage('ratePage', 'btn-rate')">
-                    <span class="nav-icon">📈</span><span>मंडी रेट</span>
-                </button>
-                <button class="nav-item" id="btn-dairy" onclick="switchPage('dairyPage', 'btn-dairy')">
-                    <span class="nav-icon">📝</span><span>मेरी डेयरी</span>
-                </button>
-                <button class="nav-item" id="
+                <button class="auth-btn" id="authBtn" onclick="handleAuth

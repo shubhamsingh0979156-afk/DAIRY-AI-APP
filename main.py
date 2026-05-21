@@ -6,7 +6,8 @@ from google.genai import types
 
 app = FastAPI()
 
-API_KEY = "AIzaSyAkS8FryTm7JWscgBkBLKD5l2FoTJeCeU"
+API_KEY = "AIzaSyDozCATJgbrcC6gfmRVXh3twglLl8SwHa8"
+
 
 client = genai.Client(api_key=API_KEY)
 

@@ -8,7 +8,7 @@ from google.genai import types
 
 app = FastAPI()
 
-# 🔑 सभी सीक्रेट चाबियां एन्वायरमेंट (Render Envs) से लोड होंगी
+# 🔑 सभी सीक्रेट चाबियां एन्वायरमेंट से लोड होंगी
 API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
@@ -16,7 +16,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
 # जेमिनी एआई क्लाइंट चालू करें
 client = genai.Client(api_key=API_KEY)
 
-# 📦 सुपाबेस डेटाबेस से संपर्क करने के लिए एक मददगार फंक्शन
+# 📦 सुपाबेस डेटाबेस से संपर्क करने के लिए फंक्शन
 async def query_supabase(path: str, method: str = "GET", json_data: dict = None):
     headers = {
         "apikey": SUPABASE_KEY,
@@ -26,21 +26,22 @@ async def query_supabase(path: str, method: str = "GET", json_data: dict = None)
     }
     url = f"{SUPABASE_URL.rstrip('/')}/rest/v1/{path}"
     async with httpx.AsyncClient() as client_http:
-        if method == "GET":
-            res = await client_http.get(url, headers=headers)
-        elif method == "POST":
-            res = await client_http.post(url, headers=headers, json=json_data)
-        elif method == "PATCH":
-            res = await client_http.patch(url, headers=headers, json=json_data)
-        return res.json() if res.status_code in [200, 201] else []
+        try:
+            if method == "GET":
+                res = await client_http.get(url, headers=headers)
+            elif method == "POST":
+                res = await client_http.post(url, headers=headers, json=json_data)
+            elif method == "PATCH":
+                res = await client_http.patch(url, headers=headers, json=json_data)
+            return res.json() if res.status_code in [200, 201] else []
+        except Exception:
+            return []
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    # 📈 विज़िटर्स काउंटर को डेटाबेस में लाइव बढ़ाएं और ताज़ा डेटा लाएं
     settings = await query_supabase("site_settings?select=key,value")
-    data_dict = {item['key']: item['value'] for item in settings}
+    data_dict = {item['key']: item['value'] for item in settings} if settings else {}
     
-    # अगर पहली बार सेटअप है तो डिफ़ॉल्ट मान सेट करें
     v_count = int(data_dict.get("visitor_count", "0")) + 1
     await query_supabase("site_settings?key=eq.visitor_count", "PATCH", {"value": str(v_count)})
     
@@ -110,9 +111,7 @@ async def home():
                     <div class="input-box">
                         <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
                         <button class="icon-btn" onclick="document.getElementById('imageInput').click()">📷</button>
-                        
                         <button class="icon-btn" id="micBtn" onclick="startVoiceRecognition()">🎤</button>
-                        
                         <input type="text" id="query" placeholder="यहाँ अपना सवाल लिखें..." onkeypress="if(event.key === 'Enter') askAI()">
                         <button class="send-btn" onclick="askAI()">भेजें</button>
                     </div>
@@ -215,7 +214,7 @@ async def home():
                     <h3>🔐 ओटीपी वेरिफिकेशन</h3>
                     <p style="font-size:13px; color:#ff6d00; font-weight:bold;">कृषि सुरक्षा के लिए डेमो OTP '1234' डालें</p>
                     <input type="number" id="otpInput" class="modal-input" placeholder="4 अंकों का OTP कोड दर्ज करें">
-                    <button class="send-btn" style="width:100%; margin-top:10px;" onclick="verifyDemoOTP()">sत्यापित करें</button>
+                    <button class="send-btn" style="width:100%; margin-top:10px;" onclick="verifyDemoOTP()">सत्यापित करें</button>
                 </div>
             </div>
 
@@ -224,7 +223,6 @@ async def home():
                 let currentUserPhone = "";
                 let base64ImageStr = "";
 
-                // 📌 ऑटो-लॉगिन: अगर यूज़र पहले से लॉगिन है तो बार-बार लॉगिन नहीं मांगेगा
                 window.onload = function() {
                     let savedPhone = localStorage.getItem("dairy_phone");
                     let savedName = localStorage.getItem("dairy_name");
@@ -306,13 +304,12 @@ async def home():
                     }
                 }
 
-                // 🎤 100% वर्किंग वॉयस रिकॉग्निशन (बोलकर टाइप करना)
                 function startVoiceRecognition() {
                     window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     if(!window.SpeechRecognition) { alert("आपका ब्राउज़र बोलकर टाइप करने का समर्थन नहीं करता है।"); return; }
                     
                     const recognition = new SpeechRecognition();
-                    recognition.lang = 'hi-IN'; // शुद्ध हिंदी और हिंग्लिश सपोर्ट
+                    recognition.lang = 'hi-IN';
                     document.getElementById('micBtn').innerText = "🛑";
                     
                     recognition.onresult = (event) => {
@@ -323,7 +320,6 @@ async def home():
                     recognition.start();
                 }
 
-                // 📷 फोटो चुनने और उसे एआई के अनुकूल बनाने की क्रिया
                 function handleImageUpload(input) {
                     const file = input.files[0];
                     if(!file) return;
@@ -331,7 +327,7 @@ async def home():
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         base64ImageStr = e.target.result.split(',')[1];
-                        alert('📷 फोटो सफलतापूर्वक जुड़ गई है! अब अपना सवाल लिखकर या सीधे भेजें दबाएं।');
+                        alert('📷 फोटो सफलतापूर्वक जुड़ गई है!');
                     };
                     reader.readAsDataURL(file);
                 }
@@ -344,7 +340,6 @@ async def home():
                     
                     document.getElementById('globalSpinner').style.display = 'block';
                     
-                    // यूजर का मैसेज स्क्रीन पर दिखाएं
                     let userDiv = document.createElement('div');
                     userDiv.className = 'message user-message';
                     userDiv.innerText = q || "📷 फोटो अपलोड की गई";
@@ -369,7 +364,7 @@ async def home():
                             })
                         });
                         let data = await response.json();
-                        base64ImageStr = ""; // रीसेट करें
+                        base64ImageStr = "";
                         
                         let aiDiv = document.createElement('div');
                         aiDiv.className = 'message ai-message';
@@ -392,12 +387,6 @@ async def home():
                             let div = document.createElement('div');
                             div.className = msg.sender === 'user' ? 'message user-message' : 'message ai-message';
                             div.innerText = msg.message;
-                            if(msg.image_url) {
-                                let img = document.createElement('img');
-                                img.className = 'chat-img';
-                                img.src = msg.image_url;
-                                div.appendChild(img);
-                            }
                             chatContainer.appendChild(div);
                         });
                         chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -434,7 +423,7 @@ async def home():
                     let fat = parseFloat(document.getElementById('milkFat').value);
                     if(!lit || !fat) { alert('सही मात्रा भरें!'); return; }
                     
-                    let price = fat * 11; // अनुमानित दर
+                    let price = fat * 11;
                     let earn = lit * price;
                     
                     await fetch('/add_milk', {
@@ -461,7 +450,7 @@ async def home():
                     let buff = document.getElementById('txt_buff').value.trim();
                     if(cow) await fetch('/update_setting?key=milk_rate_cow&val=' + encodeURIComponent(cow));
                     if(buff) await fetch('/update_setting?key=milk_rate_buffalo&val=' + encodeURIComponent(buff));
-                    alert('मालिक! मंडी रेट पूरी वेबसाइट पर लाइव बदल गया है।');
+                    alert('मालिक! मंडी रेट लाइव बदल गया है।');
                 }
 
                 async function updateSchemeBackend() {
@@ -475,7 +464,6 @@ async def home():
         </body>
     </html>
     """
-    # डेटाबेस से लाइव मानों को बदलें
     html_content = html_content.replace("VISITOR_COUNT_PLACEHOLDER", str(v_count))
     html_content = html_content.replace("COW_RATE_PLACEHOLDER", data_dict.get("milk_rate_cow", "₹45"))
     html_content = html_content.replace("BUFF_RATE_PLACEHOLDER", data_dict.get("milk_rate_buffalo", "₹70"))
@@ -486,7 +474,6 @@ async def home():
     
     return html_content
 
-# 🚀 जेमिनी प्रो एडवांस्ड चैट एंड विजन बैकएंड एपीआई
 @app.post("/chat_pro")
 async def chat_pro(req: Request):
     body = await req.json()
@@ -505,7 +492,6 @@ async def chat_pro(req: Request):
     if query:
         contents.append(query)
     if image_base64:
-        # 📷 जेमिनी प्रो को सीधे फोटो भेजने का स्ट्रक्चर
         contents.append(types.Part.from_bytes(data=image_base64.encode(), mime_type="image/jpeg"))
 
     try:
@@ -520,15 +506,13 @@ async def chat_pro(req: Request):
         )
         ai_response = res.text
         
-        # सुपॉबेस में चैट हिस्ट्री परमानेंट सेव करें
         await query_supabase("chat_history", "POST", {"phone": phone, "sender": "user", "message": query or "📷 फोटो अपलोड"})
         await query_supabase("chat_history", "POST", {"phone": phone, "sender": "ai", "message": ai_response})
         
         return {"response": ai_response}
     except Exception as e:
-        return {"response": f"क्षमा करें भाई, समस्या आई: {str(e)}"}
+        return {"response": f"समस्या आई भाई: {str(e)}"}
 
-# 📥 डेटा लोड और सेव करने के लिए बाकी डेटाबेस एंडपॉइंट्स
 @app.get("/get_chat")
 async def get_chat(phone: str):
     return await query_supabase(f"chat_history?phone=eq.{phone}&order=created_at.asc")
@@ -554,3 +538,9 @@ async def get_milk(phone: str):
 @app.get("/update_setting")
 async def update_setting(key: str, val: str):
     return await query_supabase(f"site_settings?key=eq.{key}", "PATCH", {"value": val})
+
+# 🛑 रेंडर पोर्ट बाइंडिंग फिक्स (यह लाइन सबसे महत्वपूर्ण है)
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

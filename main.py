@@ -16,8 +16,10 @@ SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
 # जेमिनी एआई क्लाइंट चालू करें
 client = genai.Client(api_key=API_KEY)
 
-# 📦 सुपाबेस डेटाबेस से संपर्क करने के लिए फंक्शन
+# 📦 सुपाबेस डेटाबेस से संपर्क करने के लिए बैकअप-सुरक्षित फंक्शन
 async def query_supabase(path: str, method: str = "GET", json_data: dict = None):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return []
     headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
@@ -28,11 +30,11 @@ async def query_supabase(path: str, method: str = "GET", json_data: dict = None)
     async with httpx.AsyncClient() as client_http:
         try:
             if method == "GET":
-                res = await client_http.get(url, headers=headers)
+                res = await client_http.get(url, headers=headers, timeout=5.0)
             elif method == "POST":
-                res = await client_http.post(url, headers=headers, json=json_data)
+                res = await client_http.post(url, headers=headers, json=json_data, timeout=5.0)
             elif method == "PATCH":
-                res = await client_http.patch(url, headers=headers, json=json_data)
+                res = await client_http.patch(url, headers=headers, json=json_data, timeout=5.0)
             return res.json() if res.status_code in [200, 201] else []
         except Exception:
             return []
@@ -51,61 +53,86 @@ async def home():
         <head>
             <title>AgriDairy Expert Pro</title>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
             <style>
-                * { box-sizing: border-box; }
-                body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f5; margin: 0; padding-bottom: 70px; height: 100vh; display: flex; flex-direction: column; }
-                .header { background-color: #1b5e20; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }
-                .auth-btn { background-color: #ffff; color: #1b5e20; border: none; padding: 6px 14px; border-radius: 20px; font-size: 14px; cursor: pointer; font-weight: bold; }
-                .ad-placeholder { background-color: #f1f3f4; border: 1px dashed #bbb; color: #777; text-align: center; padding: 10px; font-size: 12px; margin: 5px auto; max-width: 800px; width: 95%; border-radius: 5px; }
-                .page-content { flex: 1; display: none; overflow-y: auto; padding: 15px; max-width: 800px; width: 100%; margin: 0 auto; }
+                * { box-sizing: border-box; font-family: 'Google Sans', Arial, sans-serif; }
+                body { background-color: #f8f9fa; margin: 0; padding-bottom: 80px; height: 100vh; display: flex; flex-direction: column; color: #1f1f1f; }
+                
+                /* ✨ प्रीमियम मिनिमल हेडर (Gemini Style) */
+                .header { background-color: white; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e0e2e6; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+                .brand-title { font-size: 19px; font-weight: 700; color: #1e5e20; display: flex; align-items: center; gap: 8px; }
+                .auth-btn { background-color: #e8f5e9; color: #1b5e20; border: none; padding: 8px 18px; border-radius: 100px; font-size: 14px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+                .auth-btn:hover { background-color: #c8e6c9; }
+                
+                .ad-placeholder { background-color: #f1f3f4; border: 1px dashed #bbb; color: #777; text-align: center; padding: 8px; font-size: 11px; margin: 5px auto; max-width: 750px; width: 95%; border-radius: 6px; }
+                
+                .page-content { flex: 1; display: none; overflow-y: auto; padding: 20px; max-width: 750px; width: 100%; margin: 0 auto; }
                 .active-page { display: flex; flex-direction: column; }
-                .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 80px; padding-bottom: 20px; }
-                .message { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }
-                .user-message { background-color: #e8f5e9; color: #1b5e20; align-self: flex-end; border-bottom-right-radius: 4px; border: 1px solid #c8e6c9; }
-                .ai-message { background-color: white; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; white-space: pre-wrap; }
-                .chat-img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
-                .input-container { background-color: white; padding: 10px; border-top: 1px solid #e0e0e0; display: flex; justify-content: center; position: fixed; bottom: 60px; left: 0; right: 0; z-index: 5; }
-                .input-box { max-width: 800px; width: 100%; display: flex; gap: 6px; align-items: center; }
-                input[type="text"], input[type="number"], select { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; font-size: 15px; outline: none; background-color: #f9f9f9; }
-                .icon-btn { background: #f0f4f1; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-                .icon-btn:active { background: #c8e6c9; }
-                .send-btn { background-color: #1b5e20; color: white; border: none; padding: 12px 22px; border-radius: 25px; cursor: pointer; font-weight: bold; }
-                .info-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 4px solid #1b5e20; }
-                table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
-                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
-                th { background-color: #e8f5e9; color: #1b5e20; }
-                .nav-bar { background-color: white; border-top: 1px solid #e0e0e0; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; display: flex; justify-content: space-around; align-items: center; z-index: 10; }
-                .nav-item { background: none; border: none; color: #666; display: flex; flex-direction: column; align-items: center; font-size: 12px; cursor: pointer; font-weight: 500; }
-                .nav-item.active { color: #1b5e20; font-weight: bold; }
-                .nav-icon { font-size: 18px; margin-bottom: 2px; }
-                .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
-                .modal-content { background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; }
-                .modal-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
-                .dashboard-counter { background-color: #ffd54f; color: #333; padding: 10px; text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ffa000; }
-                .admin-section { background: #fffde7; padding: 15px; border-radius: 10px; border: 1px solid #fff59d; margin-bottom: 15px; }
-                .loading-spinner { display: none; width: 24px; height: 24px; border: 3px solid #f3f3f3; border-top: 3px solid #1b5e20; border-radius: 50%; animation: spin 1s linear infinite; margin: 5px auto; }
-                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                
+                /* 💬 एडवांस चैट बबल्स डिज़ाइन */
+                .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 40px; }
+                .message { max-width: 85%; padding: 14px 18px; border-radius: 22px; font-size: 15px; line-height: 1.6; word-wrap: break-word; animation: fadeIn 0.3s ease; }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+                
+                .user-message { background-color: #e3f2fd; color: #0d47a1; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 2px 4px rgba(13,71,161,0.05); }
+                .ai-message { background-color: white; color: #1f1f1f; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #edf0f2; white-space: pre-wrap; }
+                .chat-img { max-width: 100%; border-radius: 12px; margin-top: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+                
+                /* 🚀 फ्लोटिंग जेमिनी इनपुट बार */
+                .input-container { background: transparent; padding: 15px; display: flex; justify-content: center; position: fixed; bottom: 65px; left: 0; right: 0; z-index: 5; }
+                .input-box { max-width: 750px; width: 100%; display: flex; gap: 8px; align-items: center; background: white; padding: 6px 12px; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.07); border: 1px solid #e0e2e6; }
+                input[type="text"] { flex: 1; padding: 10px 14px; border: none; font-size: 15px; outline: none; background: transparent; color: #1f1f1f; }
+                
+                .icon-btn { background: transparent; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: #5f6368; }
+                .icon-btn:hover { background: #f1f3f4; color: #1f1f1f; }
+                .send-btn { background-color: #1b5e20; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
+                .send-btn:hover { background-color: #144316; }
+                
+                /* 📊 प्रीमियम कार्ड और टेबल डिज़ाइन */
+                .info-card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 20px; border: 1px solid #edf0f2; }
+                .info-card h3 { margin-top: 0; color: #1b5e20; font-size: 17px; font-weight: 700; }
+                table { width: 100%; border-collapse: collapse; margin-top: 12px; border-radius: 8px; overflow: hidden; }
+                th, td { padding: 12px 14px; text-align: left; font-size: 14px; border-bottom: 1px solid #edf0f2; }
+                th { background-color: #f8f9fa; color: #5f6368; font-weight: 500; }
+                
+                /* 📱 मॉडर्न बॉटम नेविगेशन बार */
+                .nav-bar { background-color: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px); border-top: 1px solid #e0e2e6; position: fixed; bottom: 0; left: 0; right: 0; height: 65px; display: flex; justify-content: space-around; align-items: center; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.02); }
+                .nav-item { background: none; border: none; color: #5f6368; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; font-weight: 500; gap: 4px; transition: 0.2s; }
+                .nav-item.active { color: #1b5e20; font-weight: 700; }
+                .nav-icon { font-size: 20px; }
+                
+                /* 👑 एडमिन डिज़ाइन */
+                .dashboard-counter { background: linear-gradient(135deg, #fff9c4, #fff59d); color: #5d4037; padding: 12px; text-align: center; font-size: 14px; font-weight: 700; margin-bottom: 20px; border-radius: 12px; border: 1px solid #fbc02d; }
+                .admin-section { background: #fafafa; padding: 18px; border-radius: 14px; border: 1px solid #e0e2e6; margin-bottom: 20px; }
+                .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(4px); }
+                .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 360px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+                .modal-input { width: 100%; padding: 12px 16px; margin: 10px 0; border: 1px solid #e0e2e6; border-radius: 10px; font-size: 14px; outline: none; background: #f8f9fa; }
+                
+                /* 🌊 Gemini जैसा एनिमेटेड ग्रैडिएंट लोडिंग इंडिकेटर */
+                .gemini-loader { display: none; width: 100%; height: 4px; background: linear-gradient(to right, #4285f4, #34a853, #fbbc05, #ea4335); background-size: 400% 400%; animation: shimmer 2s linear infinite; position: fixed; bottom: 140px; left: 0; z-index: 100; }
+                @keyframes shimmer { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
             </style>
         </head>
         <body>
 
             <div class="header">
-                <div>🐄 AgriDairy Expert Pro</div>
+                <div class="brand-title">✨ AgriDairy Expert Pro</div>
                 <button class="auth-btn" id="authBtn" onclick="handleAuthClick()">लॉगिन</button>
             </div>
             
             <div class="ad-placeholder">Google Ads यहाँ दिखाई देंगे (यूज़र को बिना डिस्टर्ब किए)</div>
+            <div class="gemini-loader" id="globalSpinner"></div>
 
-            <div id="welcomePage" class="page-content active-page" style="text-align: center; padding-top: 40px;">
-                <img src="https://img.icons8.com/color/96/cow.png" alt="Cow" style="margin-bottom: 15px;">
-                <h2>डिजिटल डेयरी फार्मिंग में आपका स्वागत है!</h2>
-                <p style="color: #666; font-size: 15px; padding: 0 20px;">एआई चैट गाइड, पशु रिकॉर्ड, दूध डायरी का हिसाब और मंडी रेट देखने के लिए कृपया ऊपर दिए गए बटन से सुरक्षित लॉगिन करें।</p>
-                <button class="send-btn" style="margin-top: 20px; padding: 12px 40px;" onclick="handleAuthClick()">लॉगिन करें</button>
+            <div id="welcomePage" class="page-content active-page" style="text-align: center; padding-top: 60px;">
+                <img src="https://img.icons8.com/color/96/cow.png" alt="Cow" style="margin-bottom: 20px;">
+                <h2 style="font-weight:700; font-size:24px;">डिजिटल डेयरी फार्मिंग में आपका स्वागत है!</h2>
+                <p style="color: #5f6368; font-size: 15px; padding: 0 20px; line-height:1.6;">एआई चैट गाइड, पशु रिकॉर्ड, दूध डायरी का हिसाब और लाइव मंडी रेट देखने के लिए कृपया सुरक्षित लॉगिन करें।</p>
+                <button class="auth-btn" style="margin-top: 25px; padding: 14px 45px; background-color:#1b5e20; color:white; font-size:15px; box-shadow: 0 4px 12px rgba(27,94,32,0.2);" onclick="handleAuthClick()">लॉगिन करें</button>
             </div>
 
             <div id="chatPage" class="page-content">
                 <div class="chat-container" id="chatContainer">
-                    <div class="message ai-message">राम-राम भाई! मैं आपका डेयरी एक्सपर्ट AI हूँ। पशुपालन या बीमारियों से जुड़ा कोई भी वैज्ञानिक सवाल यहाँ पूछें। आप फोटो खींचकर भी बीमारी पूछ सकते हैं।</div>
+                    <div class="message ai-message">राम-राम भाई! मैं आपका डेयरी एक्सपर्ट AI हूँ। पशुपालन या बीमारियों से जुड़ा कोई भी वैज्ञानिक सवाल यहाँ पूछें। आप नीचे कैमरा आइकॉन दबाकर फोटो भी भेज सकते हैं।</div>
                 </div>
                 <div class="input-container">
                     <div class="input-box">
@@ -113,10 +140,9 @@ async def home():
                         <button class="icon-btn" onclick="document.getElementById('imageInput').click()">📷</button>
                         <button class="icon-btn" id="micBtn" onclick="startVoiceRecognition()">🎤</button>
                         <input type="text" id="query" placeholder="यहाँ अपना सवाल लिखें..." onkeypress="if(event.key === 'Enter') askAI()">
-                        <button class="send-btn" onclick="askAI()">भेजें</button>
+                        <button class="send-btn" onclick="askAI()">➔</button>
                     </div>
                 </div>
-                <div class="loading-spinner" id="globalSpinner"></div>
             </div>
 
             <div id="ratePage" class="page-content">
@@ -124,8 +150,8 @@ async def home():
                     <h3>📈 ताज़ा दूध और मंडी बाजार भाव</h3>
                     <table>
                         <tr><th>वस्तु (Item)</th><th>ताज़ा रेट (Price)</th></tr>
-                        <tr><td>गाय का दूध (प्रति लीटर - 4.0 Fat)</td><td id="lbl_cow">COW_RATE_PLACEHOLDER</td></tr>
-                        <tr><td>भैंस का दूध (प्रति लीटर - 6.5 Fat)</td><td id="lbl_buff">BUFF_RATE_PLACEHOLDER</td></tr>
+                        <tr><td>गाय का दूध (प्रति लीटर - 4.0 Fat)</td><td id="lbl_cow" style="font-weight:700; color:#1b5e20;">COW_RATE_PLACEHOLDER</td></tr>
+                        <tr><td>भैंस का दूध (प्रति लीटर - 6.5 Fat)</td><td id="lbl_buff" style="font-weight:700; color:#1b5e20;">BUFF_RATE_PLACEHOLDER</td></tr>
                         <tr><td>सरसों खली (प्रति क्विंटल)</td><td id="lbl_must">MUST_RATE_PLACEHOLDER</td></tr>
                         <tr><td>पशु आहार/फीड (50KG बैग)</td><td id="lbl_bag">BAG_RATE_PLACEHOLDER</td></tr>
                     </table>
@@ -134,35 +160,35 @@ async def home():
 
             <div id="dairyPage" class="page-content">
                 <div class="info-card">
-                    <h3>📋 पशु रिकॉर्ड जोड़ें</h3>
+                    <h3>📋 नया पशु रिकॉर्ड जोड़ें</h3>
                     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                        <input type="text" id="cattleName" class="modal-input" placeholder="गाय/भैंस का नाम या टैग नंबर" style="flex:1;">
-                        <select id="cattleType" style="padding:10px; border-radius:8px; border:1px solid #ccc;">
+                        <input type="text" id="cattleName" class="modal-input" placeholder="गाय/भैंस का नाम या टैग नंबर" style="flex:1; margin:0;">
+                        <select id="cattleType" style="padding:12px; border-radius:10px; border:1px solid #e0e2e6; background:#f8f9fa;">
                             <option value="गाय">गाय 🐄</option>
                             <option value="भैंस">भैंस 🐃</option>
                         </select>
                     </div>
-                    <label style="font-size:12px; color:#666;">संभावित बियाने/AI की तारीख:</label>
-                    <input type="date" id="cattleDate" class="modal-input" style="padding:10px;">
-                    <button class="send-btn" style="width:100%; margin-top:5px;" onclick="addCattleBackend()">पशु रिकॉर्ड सुरक्षित करें</button>
-                    <div id="cattleList" style="margin-top:15px; font-size:14px; color:#333;"></div>
+                    <label style="font-size:12px; color:#5f6368; display:block; margin-top:10px;">संभावित बियाने/AI की तारीख:</label>
+                    <input type="date" id="cattleDate" class="modal-input" style="margin-top:5px;">
+                    <button class="auth-btn" style="width:100%; margin-top:5px; background-color:#1b5e20; color:white; padding:12px;" onclick="addCattleBackend()">पशु रिकॉर्ड सुरक्षित करें</button>
+                    <div id="cattleList" style="margin-top:15px; font-size:14px; color:#1f1f1f; line-height:1.6;"></div>
                 </div>
 
                 <div class="info-card">
                     <h3>🥛 दूध का हिसाब (मासिक डायरी)</h3>
                     <div style="display:flex; gap:8px; margin-bottom:10px;">
-                        <input type="number" id="milkLitres" placeholder="कुल लीटर दूध" style="width:50%; padding:10px; border-radius:8px; border:1px solid #ccc;">
-                        <input type="number" id="milkFat" placeholder="फैट (Fat) जैसे: 4.5" style="width:50%; padding:10px; border-radius:8px; border:1px solid #ccc;">
+                        <input type="number" id="milkLitres" placeholder="कुल लीटर दूध" class="modal-input" style="width:50%; margin:0;">
+                        <input type="number" id="milkFat" placeholder="फैट (Fat) जैसे: 4.5" class="modal-input" style="width:50%; margin:0;">
                     </div>
-                    <button class="send-btn" style="width:100%; background-color:#2e7d32;" onclick="addMilkBackend()">हिसाब जोड़ें</button>
-                    <div id="milkResult" style="margin-top:15px; font-weight:bold; color:#1b5e20; max-height:200px; overflow-y:auto;"></div>
+                    <button class="auth-btn" style="width:100%; background-color:#2e7d32; color:white; padding:12px;" onclick="addMilkBackend()">हिसाब जोड़ें</button>
+                    <div id="milkResult" style="margin-top:15px; font-weight:700; color:#1b5e20;"></div>
                 </div>
             </div>
 
             <div id="schemePage" class="page-content">
-                <div class="info-card">
-                    <h3 id="lbl_sch_title">SCHEME_TITLE_PLACEHOLDER</h3>
-                    <p id="lbl_sch_detail" style="line-height:1.6; color:#333;">SCHEME_DETAIL_PLACEHOLDER</p>
+                <div class="info-card" style="border-left: 4px solid #1a73e8;">
+                    <h3 id="lbl_sch_title" style="color:#1a73e8;">SCHEME_TITLE_PLACEHOLDER</h3>
+                    <p id="lbl_sch_detail" style="line-height:1.7; color:#3c4043; font-size:15px;">SCHEME_DETAIL_PLACEHOLDER</p>
                 </div>
             </div>
 
@@ -174,13 +200,13 @@ async def home():
                     <h4>🔄 मंडी रेट अपडेट करें</h4>
                     <input type="text" id="txt_cow" class="modal-input" placeholder="गाय दूध का नया रेट">
                     <input type="text" id="txt_buff" class="modal-input" placeholder="भैंस दूध का नया रेट">
-                    <button class="send-btn" style="width:100%; margin-top:5px; background:#e65100;" onclick="updateRatesBackend()">मंडी रेट लाइव बदलें</button>
+                    <button class="auth-btn" style="width:100%; background:#e65100; color:white;" onclick="updateRatesBackend()">मंडी रेट लाइव बदलें</button>
                 </div>
                 <div class="admin-section">
                     <h4>🔄 सरकारी योजना बदलें</h4>
                     <input type="text" id="txt_sch_title" class="modal-input" placeholder="योजना का नाम">
-                    <textarea id="txt_sch_detail" class="modal-input" placeholder="योजना की पूरी डिटेल लिखें" style="height:80px; font-family:inherit;"></textarea>
-                    <button class="send-btn" style="width:100%; margin-top:5px; background:#e65100;" onclick="updateSchemeBackend()">नई योजना लाइव अपलोड करें</button>
+                    <textarea id="txt_sch_detail" class="modal-input" placeholder="योजना की पूरी डिटेल लिखें" style="height:80px; font-family:inherit; border-radius:10px; border:1px solid #e0e2e6; padding:10px; width:100%; outline:none; background:#f8f9fa;"></textarea>
+                    <button class="auth-btn" style="width:100%; background:#e65100; color:white; margin-top:10px;" onclick="updateSchemeBackend()">नई योजना लाइव अपलोड करें</button>
                 </div>
             </div>
 
@@ -204,17 +230,17 @@ async def home():
 
             <div class="modal" id="authModal">
                 <div class="modal-content" id="loginBox">
-                    <h3>🐄 किसान भाई लॉगिन</h3>
+                    <h3 style="font-weight:700; margin-top:0;">🐄 किसान भाई लॉगिन</h3>
                     <input type="text" id="username" class="modal-input" placeholder="अपना नाम लिखें">
                     <input type="text" id="userphone" class="modal-input" placeholder="10 अंकों का मोबाइल नंबर / एडमिन पासवर्ड">
-                    <button class="send-btn" style="width:100%; margin-top:10px;" onclick="sendDemoOTP()">OTP भेजें</button>
-                    <button class="auth-btn" style="width:100%; margin-top:5px; background:#eee; color:#333;" onclick="closeAuthModal()">बंद करें</button>
+                    <button class="auth-btn" style="width:100%; background-color:#1b5e20; color:white; padding:12px; margin-top:10px;" onclick="sendDemoOTP()">OTP भेजें</button>
+                    <button class="auth-btn" style="width:100%; margin-top:5px; background:#f1f3f4; color:#5f6368;" onclick="closeAuthModal()">बंद करें</button>
                 </div>
                 <div class="modal-content" id="otpBox" style="display:none;">
                     <h3>🔐 ओटीपी वेरिफिकेशन</h3>
-                    <p style="font-size:13px; color:#ff6d00; font-weight:bold;">कृषि सुरक्षा के लिए डेमो OTP '1234' डालें</p>
+                    <p style="font-size:13px; color:#ff6d00; font-weight:bold;">सुरक्षा के लिए डेमो OTP '1234' डालें</p>
                     <input type="number" id="otpInput" class="modal-input" placeholder="4 अंकों का OTP कोड दर्ज करें">
-                    <button class="send-btn" style="width:100%; margin-top:10px;" onclick="verifyDemoOTP()">सत्यापित करें</button>
+                    <button class="auth-btn" style="width:100%; background-color:#1b5e20; color:white; padding:12px; margin-top:10px;" onclick="verifyDemoOTP()">सत्यापित करें</button>
                 </div>
             </div>
 
@@ -265,7 +291,7 @@ async def home():
                 function sendDemoOTP() {
                     currentUserName = document.getElementById('username').value.trim();
                     currentUserPhone = document.getElementById('userphone').value.trim();
-                    if(!currentUserName || !currentUserPhone) { alert('कृपया पूरा नाम और सही नंबर भरें!'); return; }
+                    if(!currentUserName || !currentUserPhone) { alert('कृपया पूरा नाम भरें!'); return; }
                     
                     if(currentUserPhone === 'Shubham79') {
                         localStorage.setItem("dairy_phone", "Shubham79");
@@ -327,7 +353,7 @@ async def home():
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         base64ImageStr = e.target.result.split(',')[1];
-                        alert('📷 फोटो सफलतापूर्वक जुड़ गई है!');
+                        alert('📷 फोटो जुड़ गई है! अब अपना सवाल लिखकर भेजें दबाएं।');
                     };
                     reader.readAsDataURL(file);
                 }
@@ -371,7 +397,10 @@ async def home():
                         aiDiv.innerText = data.response || "त्रुटि: जवाब नहीं मिल सका।";
                         chatContainer.appendChild(aiDiv);
                     } catch(e) {
-                        alert('सर्वर एरर!');
+                        let aiDiv = document.createElement('div');
+                        aiDiv.className = 'message ai-message';
+                        aiDiv.innerText = 'कनेक्शन धीमा है भाई, कृपया एक बार फिर कोशिश करें।';
+                        chatContainer.appendChild(aiDiv);
                     }
                     document.getElementById('globalSpinner').style.display = 'none';
                     chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -379,18 +408,20 @@ async def home():
 
                 async function loadChatHistory() {
                     let chatContainer = document.getElementById('chatContainer');
-                    let res = await fetch('/get_chat?phone=' + currentUserPhone);
-                    let data = await res.json();
-                    if(data.length > 0) {
-                        chatContainer.innerHTML = "";
-                        data.forEach(msg => {
-                            let div = document.createElement('div');
-                            div.className = msg.sender === 'user' ? 'message user-message' : 'message ai-message';
-                            div.innerText = msg.message;
-                            chatContainer.appendChild(div);
-                        });
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                    }
+                    try {
+                        let res = await fetch('/get_chat?phone=' + currentUserPhone);
+                        let data = await res.json();
+                        if(data && data.length > 0) {
+                            chatContainer.innerHTML = "";
+                            data.forEach(msg => {
+                                let div = document.createElement('div');
+                                div.className = msg.sender === 'user' ? 'message user-message' : 'message ai-message';
+                                div.innerText = msg.message;
+                                chatContainer.appendChild(div);
+                            });
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    } catch(e) {}
                 }
 
                 async function addCattleBackend() {
@@ -409,13 +440,17 @@ async def home():
                 }
 
                 async function loadCattleRecords() {
-                    let res = await fetch('/get_cattle?phone=' + currentUserPhone);
-                    let data = await res.json();
-                    let list = document.getElementById('cattleList');
-                    list.innerHTML = "<b>सुरक्षित पशु रिकॉर्ड:</b><br>";
-                    data.forEach(c => {
-                        list.innerHTML += `• <b>${c.name}</b> (${c.type}) - संभावित तारीख: ${c.date_text}<br>`;
-                    });
+                    try {
+                        let res = await fetch('/get_cattle?phone=' + currentUserPhone);
+                        let data = await res.json();
+                        let list = document.getElementById('cattleList');
+                        list.innerHTML = "<b>सुरक्षित पशु रिकॉर्ड:</b><br>";
+                        if(data && data.length > 0) {
+                            data.forEach(c => {
+                                list.innerHTML += `• <b>${c.name}</b> (${c.type}) - संभावित तारीख: ${c.date_text}<br>`;
+                            });
+                        }
+                    } catch(e) {}
                 }
 
                 async function addMilkBackend() {
@@ -437,12 +472,16 @@ async def home():
                 }
 
                 async function loadMilkRecords() {
-                    let res = await fetch('/get_milk?phone=' + currentUserPhone);
-                    let data = await res.json();
-                    let resDiv = document.getElementById('milkResult');
-                    let totalL = 0, totalE = 0;
-                    data.forEach(m => { totalL += m.litres; totalE += m.earning; });
-                    resDiv.innerHTML = `🥛 कुल दूध: ${totalL.toFixed(1)} लीटर | 💰 कुल जमा राशि: ₹${totalE.toFixed(2)}`;
+                    try {
+                        let res = await fetch('/get_milk?phone=' + currentUserPhone);
+                        let data = await res.json();
+                        let resDiv = document.getElementById('milkResult');
+                        let totalL = 0, totalE = 0;
+                        if(data && data.length > 0) {
+                            data.forEach(m => { totalL += m.litres; totalE += m.earning; });
+                        }
+                        resDiv.innerHTML = `🥛 कुल दूध: ${totalL.toFixed(1)} लीटर | 💰 कुल जमा राशि: ₹${totalE.toFixed(2)}`;
+                    } catch(e) {}
                 }
 
                 async function updateRatesBackend() {
@@ -450,7 +489,7 @@ async def home():
                     let buff = document.getElementById('txt_buff').value.trim();
                     if(cow) await fetch('/update_setting?key=milk_rate_cow&val=' + encodeURIComponent(cow));
                     if(buff) await fetch('/update_setting?key=milk_rate_buffalo&val=' + encodeURIComponent(buff));
-                    alert('मालिक! मंडी रेट लाइव बदल गया है।');
+                    alert('मंडी रेट लाइव बदल गया है।');
                 }
 
                 async function updateSchemeBackend() {
@@ -458,7 +497,7 @@ async def home():
                     let detail = document.getElementById('txt_sch_detail').value.trim();
                     if(title) await fetch('/update_setting?key=scheme_title&val=' + encodeURIComponent(title));
                     if(detail) await fetch('/update_setting?key=scheme_detail&val=' + encodeURIComponent(detail));
-                    alert('मालिक! नई योजना लाइव हो चुकी है।');
+                    alert('नई योजना लाइव हो चुकी है।');
                 }
             </script>
         </body>
@@ -477,7 +516,7 @@ async def home():
 @app.post("/chat_pro")
 async def chat_pro(req: Request):
     body = await req.json()
-    phone = body.get("phone")
+    phone = body.get("phone") or "Guest"
     query = body.get("query", "")
     image_base64 = body.get("image_base64")
     
@@ -506,12 +545,13 @@ async def chat_pro(req: Request):
         )
         ai_response = res.text
         
+        # 🛡️ बैकअप फिक्स: अगर सुपाबेस बिजी भी हो, तो भी लोकल रिपॉन्स किसानों को डिलीवर होगा
         await query_supabase("chat_history", "POST", {"phone": phone, "sender": "user", "message": query or "📷 फोटो अपलोड"})
         await query_supabase("chat_history", "POST", {"phone": phone, "sender": "ai", "message": ai_response})
         
         return {"response": ai_response}
     except Exception as e:
-        return {"response": f"समस्या आई भाई: {str(e)}"}
+        return {"response": f"क्षमा करें भाई, समस्या आई: {str(e)}"}
 
 @app.get("/get_chat")
 async def get_chat(phone: str):
@@ -539,7 +579,6 @@ async def get_milk(phone: str):
 async def update_setting(key: str, val: str):
     return await query_supabase(f"site_settings?key=eq.{key}", "PATCH", {"value": val})
 
-# 🛑 रेंडर पोर्ट बाइंडिंग फिक्स (यह लाइन सबसे महत्वपूर्ण है)
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 10000))

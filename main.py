@@ -9,15 +9,12 @@ from google.genai import types
 
 app = FastAPI()
 
-# 🔑 रेंडर एन्वायरमेंट वेरिएबल्स
 API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
 
-# जेमिनी क्लाइंट चालू करें
 client = genai.Client(api_key=API_KEY)
 
-# 📦 सुपाबेस डेटाबेस सिंक फंक्शन
 async def query_supabase(path: str, method: str = "GET", json_data: dict = None):
     if not SUPABASE_URL or not SUPABASE_KEY:
         return []
@@ -48,321 +45,479 @@ async def home():
     v_count = int(data_dict.get("visitor_count", "0")) + 1
     await query_supabase("site_settings?key=eq.visitor_count", "PATCH", {"value": str(v_count)})
     
-    # 🎨 सिंटैक्स एरर से बचने के लिए जेमिनी स्टाइल डार्क इंटरफेस का सेफ बेस64 ब्लॉक
-    b64_html = (
-        "PCFET0NUWVBFIHRodG1sPjxodG1sIGxhbmc9ImhpIj48aGVhZD48bWV0YSBjaGFyc2V0PSJVVEYt"
-        "OCI+PHRpdGxlPkFncmlEYWlyeSBFeHBlcnQgQUk8L3RpdGxlPjxtZXRhIG5hbWU9InZpZXdwb3J0"
-        "IiBjb250ZW50PSJ3aWR0aD1kZXZpY2Utd2lkdGgsIGluaXRpYWwtc2NhbGU9MS4wIj48bGluayBo"
-        "cmVmPSJodHRwczovL2ZvbnRzLmdvb2dsZWFwaXMuY29tL2NzczI/ZmFtaWx5PUdvb2dsZStTYW5z"
-        "OndnaHRAMzAwOzQwMDs1MDA7NzAwJmRpc3BsYXk9c3dhcCIgcmVsPSJzdHlsZXNoZWV0Ij48c3R5"
-        "bGU+KiB7Ym94LXNpemluZzogYm9yZGVyLWJveDsgZmFtaWx5OiAnR29vZ2xlIFNhbnMnLCBBcmlh"
-        "bCwgc2Fucy1zZXJpZjsgbWFyZ2luOiAwOyBwYWRkaW5nOiAwOyB9IGJvZHkgeyBiYWNrZ3JvdW5k"
-        "LWNvbG9yOiAjMTMxMzE0OyBjb2xvcjogI2UzZTMzMzsgaGVpZ2h0OiAxMDB2aDsgZGlzcGxheTog"
-        "ZmxleDsgZmxleC1kaXJlY3Rpb246IGNvbHVtbjsgb3ZlcmZsb3c6IGhpZGRlbjsgfSAuaGVhZGVy"
-        "IHsgYmFja2dyb3VuZC1jb2xvcjogIzEzMTMxNDsgcGFkZGluZzogMTZweCAyNHB4OyBkaXNwbGF5"
-        "OiBmbGV4OyBqdXN0aWZ5LWNvbnRlbnQ6IHNwYWNlLWJldHdlZW47IGFsaWduLWl0ZW1zOiBjZW50"
-        "ZXI7IGJvcmRlci1ib3R0b206IDFweCBzb2xpZCAjMmQyZjMxOyB9ICuYnJhbmQtdGl0bGUgeyBm"
-        "b250LXNpemU6IDIycHg7IGZvbnQtd2lnaHQ6IDQwMDsgY29sb3I6ICNlM2UzZTM7IH0gLmF1dGgt"
-        "YnRuIHsgYmFja2dyb3VuZC1jb2xvcjogIzJlMzEzNTsgY29sb3I6ICNlM2UzZTM7IGJvcmRlcjog"
-        "bm9uZTsgcGFkZGluZzogMTBweCAyNHB4OyBib3JkZXItcmFkaXVzOiAxMDBweDsgZm9udC1zaXpl"
-        "OiAxNHB4OyBjdXJzb3I6IHBvaW50ZXI7IH0gLmFkLWNvbnRhaW5lciB7IGJhY2tkcm91bmQtY29s"
-        "b3I6ICMxZTFmMjA7IGNvbG9yOiAjOWFhMGE2OyB0ZXh0LWFsaWduOiBjZW50ZXI7IHBhZGRpbmc6"
-        "IDEwcHg7IGZvbnQtc2l6ZTogMTJweDsgbWFyZ2luOiA1cHggYXV0bzsgbWF4LXdpZHRoOiA3NTBw"
-        "eDsgd2lkdGg6IDk1JTsgYm9yZGVyLXJhZGl1czogOHB4OyBib3JkZXI6IDFweCBzb2xpZCAjMmQy"
-        "ZjMxOyB9IC5wYWdlLWNvbnRlbnQgeyBmbGV4OiAxOyBkaXNwbGF5OiBub25lOyBvdmVyZmxvdy15"
-        "OiBhdXRvOyBwYWRkaW5nOiAyMHB4OyBtYXgtd2lkdGg6IDc1MHB4OyB3aWR0aDogMTAwJTsgbWFy"
-        "Z2luOiAwIGF1dG87IH0gLmFjdGl2ZS1wYWdlIHsgZGlzcGxheTogZmxleDsgZmxleC1kaXJlY3Rp"
-        "b246IGNvbHVtbjsgfSAuY2hhdC1jb250YWluZXIgeyBmbGV4OiAxOyBvdmVyZmxvdy15OiBhdXRv"
-        "OyBkaXNwbGF5OiBmbGV4OyBmbGV4LWRpcmVjdGlvbjogY29sdW1uOyBnYXA6IDMycHg7IHBhZGRp"
-        "bmctYm90dG9tOiAxMzBweDsgfSAubWVzc2FnZS13cmFwcGVyIHsgZGlzcGxheTogZmxleDsgZmxl"
-        "eC1kaXJlY3Rpb246IGNvbHVtbjsgd2lkdGg6IDEwMCU7IH0gLm1lc3NhZ2UgeyBmb250LXNpemU6"
-        "IDE2cHg7IGxpbmUtaGVpZ2h0OiAxLjY7IHdvcmQtd3JhcDogYnJlYWstd29yZDsgY29sb3I6ICNl"
-        "M2UzZTM7IH0gLnVzZXItd3JhcHBlciB7IGFsaWduLWl0ZW1zOiBmbGV4LWVuZDsgfSAudXNlci1t"
-        "ZXNzYWdlIHsgYmFja2dyb3VuZC1jb2xvcjogIzJiMmEyYTsgcGFkZGluZzogMTJweCAyMHB4OyBi"
-        "b3JkZXItcmFkaXVzOiAyMHB4OyBib3JkZXI6IDFweCBzb2xpZCAjM2M0MDQzOyBkaXNwbGF5OiBp"
-        "bmxpbmUtYmxvY2s7IH0gLmFpLXdyYXBwZXIgeyBhbGlnbi1pdGVtczogZmxleC1zdGFydDsgfSAu"
-        "YWktbWVzc2FnZSB7IGJhY2tkcm91bmQtY29sb3I6IHRyYW5zcGFyZW50OyB3aGl0ZS1zcGFjZTog"
-        "cHJlLXdyYXA7IHBhZGRpbmctbGVmdDogNHB4OyB9IC5jaGF0LWltZyB7IG1heC13aWR0aDogMjUw"
-        "cHg7IGJvcmRlci1ib3JkZXItcmFkaXVzOiAxNHB4OyBtYXJnaW4tdG9wOiAxMHB4OyBib3JkZXI6"
-        "IDFweCBzb2xpZCAjM2M0MDQzOyB9IC5pbnB1dC1jb250YWluZXIgeyBiYWNrZ3JvdW5kOiBsaW5l"
-        "YXItZ3JhZGllbnQodG8gdG9wLCAjMTMxMzE0IDcwJSwgdHJhbnNwYXJlbnQpOyBwYWRkaW5nOiAy"
-        "MHB4IDE1cHg7IGRpc3BsYXk6IGZsZXg7IGp1c3RpZnktY29udGVudDogY2VudGVyOyBwb3NpdGlv"
-        "bjogZml4ZWQ7IGJvdHRvbTogNjVweDsgbGVmdDogMDsgcmlnaHQ6IDA7IHppbmRleDogNTsgfSAu"
-        "aW5wdXQtYm94IHsgbWF4LXdpZHRoOiA3NTBweDsgd2lkdGg6IDEwMCU7IGRpc3BsYXk6IGZsZXg7"
-        "IGdhcDogMTBweDsgYWxpZ24taXRlbXM6IGNlbnRlcjsgYmFja2dyb3VuZDogIzFlMWYyMDsgcGFk"
-        "ZGluZzogOHB4IDE4cHg7IGJvcmRlci1yYWRpdXM6IDEwMHB4OyBib3JkZXI6IDFweCBzb2xpZCAj"
-        "MmQyZjMxOyB9IGlucHV0W3R5cGU9InRleHQiXSB7IGZsZXg6IDE7IHBhZGRpbmc6IDEwcHggMTJw"
-        "eDsgYm9yZGVyOiBub25lOyBmb250LXNpemU6IDE2cHg7IG91dGxpbmU6IG5vbmU7IGJhY2tncm91"
-        "bmQ6IHRyYW5zcGFyZW50OyBjb2xvcjogI2UzZTMzMzsgfSBpbnB1dFt0eXBlPSJ0ZXh0Il06OnBs"
-        "YWNlaG9sZGVyIHsgY29sb3I6ICM4ZTkxOGY7IH0gLmljb24tYnRuIHsgYmFja2dyb3VuZDogdHJh"
-        "bnNwYXJlbnQ7IGJvcmRlcjogbm9uZTsgd2lkdGg6IDQwcHg7IGhlaWdodDogNDBweDsgYm9yZGVy"
-        "LXJhZGl1czogNTAlOyBmb250LXNpemU6IDIwcHg7IGN1cnNvcjogcG9pbnRlcjsgZGlzcGxheTog"
-        "ZmxleDsgYWxpZ24taXRlbXM6IGNlbnRlcjsganVzdGlmeS1jb250ZW50OiBjZW50ZXI7IGNvbG9y"
-        "OiAjYzRjN2M1OyB9IC5zZW5kLWJ0biB7IGNvbG9yOiAjZTNlM2UzOyBmb250LXNpemU6IDIycHg7"
-        "IGJhY2tncm91bmQ6IHRyYW5zcGFyZW50OyBib3JkZXI6IG5vbmU7IGN1cnNvcjogcG9pbnRlcjsg"
-        "cGFkZGluZzogMCA4cHg7IH0gLmluZm8tY2FyZCB7IGJhY2tncm91bmQ6ICMxZTFmMjA7IHBhZGRp"
-        "bmc6IDI0cHg7IGJvcmRlci1yYWRpdXM6IDE2cHg7IG1hcmdpbi1ib3R0b206IDIwcHg7IGJvcmRl"
-        "cjogMXB4IHNvbGlkICMyZDJmMzE7IH0gLmluZm8tY2FyZCBoMyB7IG1hcmdpbi10b3A6IDA7IGNv"
-        "bG9yOiAjZmZmZmZmOyBmb250LXNpemU6IDE4cHg7IGZvbnQtd2lnaHQ6IDUwMDsgfSB0YWJsZSB7"
-        "IHdpZHRoOiAxMDAlOyBib3JkZXItY29sbGFwc2U6IGNvbGxhcHNlOyBtYXJnaW4tdG9wOiAxNnB4"
-        "OyB9IHRoLCB0ZCB7IHBhZGRpbmc6IDE0cHg7IHRleHQtYWxpZ246IGxlZnQ7IGZvbnQtc2l6ZTog"
-        "MTVweDsgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkICMyZDJmMzE7IGNvbG9yOiAjZTNlM2UzOyB9"
-        "IHRoIHsgY29sb3I6ICM4ZTkxOGY7IGZvbnQtd2lnaHQ6IDUwMDsgfSAubmF2LWJhciB7IGJhY2tn"
-        "cm91bmQtY29sb3I6ICMxMzEzMTQ7IGJvcmRlci10b3A6IDFweCBzb2xpZCAjMmQyZjMxOyBwb3Np"
-        "dGlvbjogZml4ZWQ7IGJvdHRvbTogMDsgbGVmdDogMDsgcmlnaHQ6IDA7IGhlaWdodDogNjVweDsg"
-        "ZGlzcGxheTogZmxleDsganVzdGlmeS1jb250ZW50OiBzcGFjZS1hcm91bmQ7IGFsaWduLWl0ZW1z"
-        "OiBjZW50ZXI7IHppbmRleDogMTA7IH0gLm5hdi1pdGVtIHsgYmFja2dyb3VuZDogbm9uZTsgYm9y"
-        "ZGVyOiBub25lOyBjb2xvcjogIzhlOTE4ZjsgZGlzcGxheTogZmxleDsgZmxleC1kaXJlY3Rpb246"
-        "IGNvbHVtbjsgYWxpZ24taXRlbXM6IGNlbnRlcjsgZm9udC1zaXplOiAxMXB4OyBjdXJzb3I6IHBv"
-        "aW50ZXI7IGdhcDogNHB4OyB9IC5uYXYtaXRlbS5hY3RpdmUgeyBjb2xvcjogI2ZmZmZmZjsgZm9u"
-        "dC13aWdodDogNzAwOyB9IC5uYXYtaWNvbiB7IGZvbnQtc2l6ZTogMjJweDsgfSAuZGFzaGJvYXJk"
-        "LWNvdW50ZXIgeyBiYWNrZ3JvdW5kOiAjMWUxZjIwOyBjb2xvcjogI2UzZTMzMzsgcGFkZGluZzog"
-        "MTRweDsgdGV4dC1hbGlnbjogY2VudGVyOyBmb250LXNpemU6IDE0cHg7IGZvbnQtd2lnaHQ6IDUw"
-        "MDsgbWFyZ2luLWJvdHRvbTogMjBweDsgYm9yZGVyLXJhZGl1czogMTJweDsgYm9yZGVyOiAMXB4I"
-        "HNvbGlkICMyZDJmMzE7IH0gLmFkbWluLXNlY3Rpb24geyBiYWNrZ3JvdW5kOiAjMTMxMzE0OyBw"
-        "YWRkaW5nOiAyMHB4OyBib3JkZXItcmFkaXVzOiAxNnB4OyBib3JkZXI6IDFweCBzb2xpZCAjMmQy"
-        "ZjMxOyBtYXJnaW4tYm90dG9tOiAyMHB4OyB9IC5tb2RhbCB7IGRpc3BsYXk6IG5vbmU7IHBvc2l0"
-        "aW9uOiBmaXhlZDsgdG9wOiAwOyBsZWZ0OiAwOyB3aWR0aDogMTAwJTY7IGhlaWdodDogMTAwJTsg"
-        "YmFja2dyb3VuZDogcmdiYSgwLDAsMCwwLjYpOyBqdXN0aWZ5LWNvbnRlbnQ6IGNlbnRlcjsgYWxp"
-        "Z24taXRlbXM6IGNlbnRlcjsgemluZGV4OiAxMDA7IH0gLm1vZGFsLWNvbnRlbnQgeyBiYWNrZ3Jv"
-        "dW5kOiAjMWUxZjIwOyBwYWRkaW5nOiAzMnB4OyBib3JkZXItcmFkaXVzOiAyNHB4OyB3aWR0aDog"
-        "OTAlOyBtYXgtd2lkdGg6IDM2MHB4OyB0ZXh0LWFsaWduOiBjZW50ZXI7IGJvcmRlcjogMXB4IHNv"
-        "bGlkICMyZDJmMzE7IH0gLm1vZGFsLWlucHV0IHsgd2lkdGg6IDEwMCU7IHBhZGRpbmc6IDE0cHg7"
-        "IG1hcmdpbjogMTJweCAwOyBib3JkZXI6IDFweCBzb2xpZCAjMmQyZjMxOyBib3JkZXItcmFkaXVz"
-        "OiAxMnB4OyBmb250LXNpemU6IDE1cHg7IG91dGxpbmU6IG5vbmU7IGJhY2tncm91bmQ6ICMxMzEz"
-        "MTQ7IGNvbG9yOiAjZTNlM2UzOyB9IC5nZW1pbmktbG9hZGVyIHsgZGlzcGxheTogbm9uZTsgd2lk"
-        "dGg6IDEwMCU7IGhlaWdodDogM3B4OyBiYWNrZ3JvdW5kOiBsaW5lYXItZ3JhZGllbnQodG8gcmln"
-        "aHQsICM0Mjg1ZjQsICMzNGE4NTMsICNmYmJjMDUsICNlYTQzMzUpOyBiYWNrZ3VuZC1zaXplOiA0"
-        "MDAlIDQwMCU7IGFuaW1hdGlvbjogc2hpbW1lciAxLjVzIGxpbmVhciBpbmZpbml0ZTsgcG9zaXRp"
-        "b246IGZpeGVkOyBib3R0b206IDE0NXB4OyBsZWZ0OiAwOyB6aW5kZXg6IDEwMDsgfSBAa2V5ZnJh"
-        "bWVzIHNoaW1tZXIgeyAwJSB7IGJhY2tncm91bmQtcG9zaXRpb246IDAlIDUwJTsgfSA1MCUgeyBi"
-        "YWNrZ3JvdW5kLXBvc2l0aW9uOiAxMDAlIDUwJTsgfSAxMDAlIHsgYmFja2dyb3VuZC1wb3NpdGlv"
-        "bjogMCUgNTAlOyB9IH0gPC9zdHlsZT48L2hlYWQ+PGJvZHk+PGRpdiBjbGFzcz0iaGVhZGVyIj48"
-        "ZGl2IGNsYXNzPSJicmFuZC10aXRsZSI+QWdyaURhaXJ5IEV4cGVydCBBSTwvZGl2PididXR0b24g"
-        "Y2xhc3M9ImF1dGgtYnRuIiBpZD0iYXV0aEJ0biIgb25jbGljaz0iaGFuZGxlQXV0aENsaWNrKCki"
-        "PmxvZ2luPC9idXR0b24+PC9kaXY+PGRpdiBjbGFzcz0iYWQtY29udGFpbmVyIj5Hb29nbGUgQWRz"
-        "IHlhYWhhbiBkaWtoYWkgZGVuZ2U8L2Rpdj48ZGl2IGNsYXNzPSJnZW1pbmktbG9hZGVyIiBpZD0i"
-        "Z2xvYmFsU3Bpbm5lciI+PC9kaXY+PGRpdiBpZD0id2VsY29tZVBhZ2UiIGNsYXNzPSJwYWdlLWNv"
-        "bnRlbnQgYWN0aXZlLXBhZ2UiIHN0eWxlPSJ0ZXh0LWFsaWduOmNlbnRlcjtwYWRkaW5nLXRvcDo4"
-        "MHB4OyI+PGgyIHN0eWxlPSJmb250LXdpZ2h0OjQwMDtmb250LXNpemU6MjhweDttYXJnaW4tYm90"
-        "dG9tOjEwcHg7Ij7ZbmFtc3RlLCBtYWluIGFhcGthIGRhaXJ5IGd1aWRlIGh1dW48L2gyPjxwIHN0"
-        "eWxlPSJjb2xvcjojOGU5MThmO2ZvbnQtc2l6ZToxNnB4O3BhZGRpbmc6MCA0MHB4O2xpbmUtaGVp"
-        "Z2h0OjEuNjtbWFyZ2luLWJvdHRvbTozMHB4OyI+cGFzaHVvbiBrZSBoZWFsdGgsIHJvZ29uIGtl"
-        "IHNhdGlrIGlsYWogYXVyIGRvb2RoIGRhaXJ5IGthIGhpc2FiIHJha2huZSBrZSBsaXllIHN1cmFr"
-        "c2hpdCBzaHVydWFhdCBrYXJlbi48L3A+PGJ1dHRvbiBjbGFzcz0iYXV0aC1idG4iIHN0eWxlPSJi"
-        "YWNrZ3JvdW5kLWNvbG9yOiNlM2UzZTM7Y29sb3I6IzEzMTMxNDtwYWRkaW5nOjE0cHggNDBweDsi"
-        "IG9uY2xpY2s9ImhhbmRsZUF1dGhDbGljaygpIj5sb2dpbiBrYXJlbi9idXR0b24+PC9kaXY+PGRp"
-        "diBpZD0iY2hhdFBhZ2UiIGNsYXNzPSJwYWdlLWNvbnRlbnQiPjxkaXYgY2xhc3M9ImNoYXQtY29u"
-        "dGFpbmVyIiBpZD0iY2hhdENvbnRhaW5lciI+PGRpdiBjbGFzcz0ibWVzc2FnZS13cmFwcGVyIGFp"
-        "LXdyYXBwZXIiPjxkaXYgY2xhc3M9Im1lc3NhZ2UgYWktbWVzc2FnZSI+cmFtLXJhbSBiaGFpISBt"
-        "YWluIGFhcGthIEFncmlEYWlyeSBFeHBlcnQgQUkgaHV1bi4gcGFzaHVwYWxhbiB5YSBiaW1hcmlv"
-        "biBzZSBqdWRhIGtvaSBiaSBzYXdhbCBwdWNoZW4sIHlhIG5pY2hlIGNhbWVyYSBidXR0b24gZGFi"
-        "YWthciBzaWRoZSBmb3RvIGJoZWplbi48L2Rpdj48L2Rpdj48L2Rpdj48GRpdiBjbGFzcz0iaW5w"
-        "dXQtY29udGFpbmVyIj48ZGl2IGNsYXNzPSJpbnB1dC1ib3giPjxpbnB1dCB0eXBlPSJmaWxlIiBp"
-        "ZD0iaW1hZ2VJbnB1dCIgYWNjZXB0PSJpbWFnZS8qIiBzdHlsZT0iZGlzcGxheTpub25lOyIgb25j"
-        "aGFuZ2U9ImhhbmRsZUltYWdlVXBsb2FkKHRoaXMpIj48YnV0dG9uIGNsYXNzPSJpY29uLWJ0biIg"
-        "b25jbGljaz0iZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2ltYWdlSW5wdXQnKS5jbGljaygpIj4x"
-        "bWFnZTwvYnV0dG9uPjxidXR0b24gY2xhc3M9Imljb24tYnRuIiBpZD0ibWljQnRuIiBvbmNsaWNr"
-        "PSJzdGFydFZvaWNlUmVjb2duaXRpb24oKSI+bWljPC9idXR0b24+PGlucHV0IHR5cGU9InRleHQi"
-        "IGlkPSJxdWVyeSIgcGxhY2Vob2xkZXI9InlhYWhhbiBzYW5kZXNoIGxpa2hlbi4uLiIgb25rZXlw"
-        "cmVzcz0iaWYoZXZlbnQua2V5PT09J0VudGVyJykgYXNrQUkoKSI+PGJ1dHRvbiBjbGFzcz0ic2Vu"
-        "ZC1idG4iIG9uY2xpY2s9ImFza0FJKCkiPtatPC9idXR0b24+PC9kaXY+PC9kaXY+PC9kaXY+PGRp"
-        "diBpZD0icmF0ZVBhZ2UiIGNsYXNzPSJwYWdlLWNvbnRlbnQiPjxkaXYgY2xhc3M9ImluZm8tY2Fy"
-        "ZCI+PGgzPtatIHRhemEgYmF6YXIgYXVyIG1hbmRpIGJoYXY8L2gzPjx0YWJsZT48dHI+PHRoPnZh"
-        "c3R1IChJdGVtKTwvdGg+PHRoPmJoYXYgKFByaWNlKTwvdGg+PC90cj48dHI+PHRkPmdheSBrYSBk"
-        "b29kaCAocHJldGkgbGl0ZXIpPC90ZD48dGQgaWQ9ImxibF9jb3ciIHN0eWxlPSJmb250LXdpZ2h0"
-        "OjcwMDsiPkNPV19SQVRFX1BMQUNFSE9MREVSPC90ZD48L3RyPjx0cj48dGQ+YmhhaW5zIGthIGRv"
-        "b2RoIChwcmV0aCBsaXRlcik8L3RkPjx0ZCBpZD0ibGJsX2J1ZmYiIHN0eWxlPSJmb250LXdpZ2h0"
-        "OjcwMDsiPkJVRkZfUkFURV9QTEFDRUhPTERFUjwvdGQ+PC90cj48dHI+PHRkPnNhcnNvbiBraGFs"
-        "aTwvdGQ+PHRkPk1VU1RfUkFURV9QTEFDRUhPTERFUjwvdGQ+PC90cj48dHI+PHRkPnBhc2h1IGFo"
-        "YXIvZmVlZDwvdGQ+PHRkPkJBR19SQVRFX1BMQUNFSE9MREVSPC90ZD48L3RyPjwvdGFibGU+PC9k"
-        "aXY+PC9kaXY+PGRpdiBpZD0iZGFpcnlQYWdlIiBjbGFzcz0icGFnZS1jb250ZW50Ij48ZGl2IGNs"
-        "YXNzPSJpbmZvLWNhcmQiPjxoMz7atIG5heWEgcGFzaHUgcmVjb3JkIGpvZGVuPC9oMz48ZGl2IHN0"
-        "eWxlPSJkaXNwbGF5OmZsZXg7Z2FwOjEycHg7bWFyZ2luLWJvdHRvbToxMnB4OyI+PGlucHV0IHR5"
-        "cGU9InRleHQiIGlkPSNjYXR0bGVOYW1lIiBjbGFzcz0ibW9kYWwtaW5wdXQiIHBsYWNlaG9sZGVy"
-        "PSJnYXkvYmhhaW5zIGthIG5hbSB5YSBudW1iZXIiIHN0eWxlPSJmbGV4OjE7bWFyZ2luOjA7Ij48"
-        "c2VsZWN0IGlkPSNjYXR0bGVUeXBlIiBzdHlsZT0icGFkZGluZzoxMnB4O2JvcmRlci1yYWRpdXM6"
-        "MTJweDtib3JkZXI6MXB4IHNvbGlkICMyZDJmMzE7YmFja2dyb3VuZDojMTMxMzE0O2NvbG9yOiNl"
-        "M2UzZTM7Ij48b3B0aW9uIHZhbHVlPSJnYXkiPmdheSAmbXU7PC9vcHRpb24+PG9wdGlvbiB2YWx1"
-        "ZT0iYmhhaW5zIj5iaGFpbnMgJm51Ozwvb3B0aW9uPjwvc2VsZWN0PjwvZGl2PjxsYWJlbCBzdHls"
-        "ZT0iZm9udC1zaXplOjEzcHg7Y29sb3I6IzhlOTE4ZjsiPnNhbWJoYXZpdCB0YXJpa2g6PC9sYWJl"
-        "bD48aW5wdXQgdHlwZT0iZGF0ZSIgaWQ9ImNhdHRsZURhdGUiIGNsYXNzPSJtb2RhbC1pbnB1dCIg"
-        "c3R5bGU9Im1hcmdpbi10b3A6NnB4OyI+PGJ1dHRvbiBjbGFzcz0iYXV0aC1idG4iIHN0eWxlPSJ3"
-        "aWR0aDoxMDAlO2JhY2tncm91bmQ6I2UzZTMzMztjb2xvcjojMTMxMzE0OyIgb25jbGljaz0iYWRk"
-        "Q2F0dGxlQmFja2VuZCgpIj5zdXJha3NoaXQga2FyZW48L2J1dHRvbj48ZGl2IGlkPSNjYXR0bGVM"
-        "aXN0IiBzdHlsZT0ibWFyZ2luLXRvcDoyMHB4O2ZvbnQtc2l6ZToxNXB4O2xpbmUtaGVpZ2h0OjEu"
-        "NjsiPjwvZGl2PjwvZGl2PjxkaXYgY2xhc3M9ImluZm8tY2FyZCI+PGgzPtatIG1hc2lrIGRvb2Ro"
-        "IGRhaXJ5PC9oMz48ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7Z2FwOjEycHg7bWFyZ2luLWJvdHRv"
-        "bToxMnB4OyI+PGlucHV0IHR5cGU9Im51bWJlciIgaWQ9Im1pbGtMaXRyZXMiIHBsYWNlaG9sZGVy"
-        "PSJrdWwgbGl0ZXIiIGNsYXNzPSJtb2RhbC1pbnB1dCIgc3R5bGU9IndpZHRoOjUwJTttYXJnaW46"
-        "MDsiPjxpbnB1dCB0eXBlPSJudW1iZXIiIGlkPSJtaWxrRmF0IiBwbGFjZWhvbGRlcj0iZmF0IiBj"
-        "bGFzcz0ibW9kYWwtaW5wdXQiIHN0eWxlPSJ3aWR0aDoxNTAlO21hcmdpbjowOyI+PC9kaXY+PGJ1"
-        "dHRvbiBjbGFzcz0iYXV0aC1idG4iIHN0eWxlPSJ3aWR0aDoxMDAlO2JhY2tncm91bmQ6I2UzZTMz"
-        "Mztjb2xvcjojMTMxMzE0OyIgb25jbGljaz0iYWRkTWlsa0Yocm9tQmFja2VuZCkiPmhpc2FiIGpv"
-        "ZGVuPC9idXR0b24+PGRpdiBpZD0ibWlsa1Jlc3VsdCIgc3R5bGU9Im1hcmdpbi10b3A6MTVweDtm"
-        "b250LXdpZ2h0OjcwMDsiPjwvZGl2PjwvZGl2PjwvZGl2PUpkaXYgaWQ9InNjaGVtZVBhZ2UiIGNs"
-        "YXNzPSJwYWdlLWNvbnRlbnQiPjxkaXYgY2xhc3M9ImluZm8tY2FyZCI+PGgzIGlkPSJsYmxfc2No"
-        "X3RpdGxlIiBzdHlsZT0iZm9udC1zaXplOjIwcHg7Zm9udC13aWdodDo1MDA7Ij5TQ0hFTUVfVElU"
-        "TEVfUExBQ0VIT0xERVI8L2gzPjxwIGlkPSJsYmxfc2NoX2RldGFpbCIgc3R5bGU9ImxpbmUtaGVp"
-        "Z2h0OjEuNztjb2xvcjojYzRjN2M1O2ZvbnQtc2l6ZToxNnB4OyI+U0NIRU1FX0RFVEFJTFBMQUNF"
-        "SE9MREVSPC9wPjwvZGl2PjwvZGl2PjxkaXYgaWQ9ImFkbWluUGFnZSIgY2xhc3M9InBhZ2UtY29u"
-        "dGVudCI+PGRpdiBjbGFzcz0iZGFzaGJvYXJkLWNvdW50ZXIiPtatIGFkbWluIGRhc2hib2FyZCB8"
-        "IGt1bCB2aXppdGFyczogVklTSVRPUl9DT1VOVF9QTEFDRUhPTERFUjwvZGl2PjxkaXYgY2xhc3M9"
-        "ImFkbWluLXNlY3Rpb24iPjxoND7atIG1hbmRpIHJhdGUgdXBkYXRlIGthcmVuPC9oND48aW5wdXQg"
-        "dHlwZT0idGV4dCIgaWQ9InR4dF9jb3ciIGNsYXNzPSJtb2RhbC1pbnB1dCIgcGxhY2Vob2xkZXI9"
-        "ImdheSBkb29kaCByYXRlIj48aW5wdXQgdHlwZT0idGV4dCIgaWQ9InR4dF9idWZmIiBjbGFzcz0i"
-        "bW9kYWwtaW5wdXQiIHBsYWNlaG9sZGVyPSJiaGFpbnMgZG9vZGggcmF0ZSI+PGJ1dHRvbiBjbGFz"
-        "cz0iYXV0aC1idG4iIHN0eWxlPSJiYWNrZ3JvdW5kOiNlM2UzZTM7Y29sb3I6IzEzMTMxNDsiIG9u"
-        "Y2xpY2s9InVwZGF0ZVJhdGVzQmFja2VuZCgpIj5tYW5kaSByYXRlIGJhZGxlbjwvYnV0dG9uPjwv"
-        "ZGl2PjxkaXYgY2xhc3M9ImFkbWluLXNlY3Rpb24iPjxoND7atIGdvdmVybm1lbnQgc2NoZW1lIGJh"
-        "ZGxlbjwvaDQ+PGlucHV0IHR5cGU9InRleHQiIGlkPSJ0eHRfc2NoX3RpdGxlIiBjbGFzcz0ibW9k"
-        "YWwtaW5wdXQiIHBsYWNlaG9sZGVyPSJ5b2phbmEgbmFtIj48dGV4dGFyZSBpZD0idHh0X3NjaF9k"
-        "ZXRhaWwiIGNsYXNzPSJtb2RhbC1pbnB1dCIgcGxhY2Vob2xkZXI9InlvamFuYSBkZXRhaWwiIHN0"
-        "eWxlPSJoZWlnaHQ6MTAwcHg7d2lkdGg6MTAwJTtiYWNrZ3JvdW5kOiMxMzEzMTQ7Y29sb3I6I2Uz"
-        "ZTMzMzsiPjwvdGV4dGFyZT48YnV0dG9uIGNsYXNzPSiYXV0aC1idG4iIHN0eWxlPSJiYWNrZ3Jv"
-        "dW5kOiNlM2UzZTM7Y29sb3I6IzEzMTMxNDttYXJnaW4tdG9wOjEycHg7IiBvbmNsaWNrYj0idXBk"
-        "YXRlU2NoZW1lQmFja2VuZCgpIj51cGxvYWQga2FyZW48L2J1dHRvbj48L2Rpdj48L2Rpdj48ZGl2"
-        "IGNsYXNzPSJuYXYtYmFyIiBpZD0iYm90dG9tTmF2IiBzdHlsZT0iZGlzcGxheTpub25lOyI+PGJ1"
-        "dHRvbiBjbGFzcz0ibmF2LWl0ZW0gYWN0aXZlIiBpZD0iYnRuLWNoYXQiIG9uY2xpY2s9InN3aXRj"
-        "aFBhZ2UoJ2NoYXRQYWdlJywnYnRuLWNoYXQnKSI+PHNwYW4gY2xhc3M9Im5hdi1pY29uIj7atTwv"
-        "c3Bhbj48c3Bhbj5jaGF0PC9zcGFuPjwvYnV0dG9uPjxidXR0b24gY2xhc3M9Im5hdi1pdGVtIiBp"
-        "ZD0iYnRuLXJhdGUiIG9uY2xpY2s9InN3aXRjaFBhZ2UoJ3JhdGVQYWdlJywnYnRuLXJhdGUnKSI+"
-        "PHNwYW4gY2xhc3M9Im5hdi1pY29uIj7atTwvc3Bhbj48c3Bhbj5tYW5kaSByYXRlPC9zcGFuPjwv"
-        "YnV0dG9uPjxidXR0b24gY2xhc3M9Im5hdi1pdGVtIiBpZD0iYnRuLWRhaXJ5IiBvbmNsaWNrPSJz"
-        "d2l0Y2hQYWdlKCdkYWlyeVBhZ2UnLCdidG4tZGFpcnknKSI+PHNwYW4gY2xhc3M9Im5hdi1pY29u"
-        "Ij7atTwvc3Bhbj48c3Bhbj5tZXJpIGRhaXJ5PC9zcGFuPjwvYnV0dG9uPjxidXR0b24gY2xhc3M9"
-        "Im5hdi1pdGVtIiBpZD0iYnRuLXNjaGVtZSIgb25jbGljaz0ic3dpdGNoUGFnZSgnc2NoZW1lUGFn"
-        "ZScsJ2J0bi1zY2hlbWUnKSI+PHNwYW4gY2xhc3M9Im5hdi1pY29uIj7atTwvc3Bhbj48c3Bhbj55"
-        "b2phbmFlbjwvc3Bhbj48L2J1dHRvbj48YnV0dG9uIGNsYXNzPSJuYXYtaXRlbSIgaWQ9ImJ0bi1h"
-        "ZG1pbiIgc3R5bGU9ImRpc3BsYXk6bm9uZTsiIG9uY2xpY2s9InN3aXRjaFBhZ2UoJ2FkbWluUGFn"
-        "ZScsJ2J0bi1hZG1pbicpIj48c3BhbiBjbGFzcz0ibmF2LWljb24iPtatPC9zcGFuPjxzcGFuPmNv"
-        "bnRyb2w8L3NwYW4+PC9idXR0b24+PC9kaXY+PGRpdiBjbGFzcz0ibW9kYWwiIGlkPSJhdXRoTW9k"
-        "YWwiPjxkaXYgY2xhc3M9Im1vZGFsLWNvbnRlbnQiIGlkPSJsb2dpbkJveCI+PGgzIHN0eWxlPSJm"
-        "b250LXdpZ2h0OjUwMDttYXJnaW4tdG9wOjA7Ij5sb2dpbjwvaDM+PGlucHV0IHR5cGU9InRleHQi"
-        "IGlkPSJ1c2VybmFtIiBjbGFzcz0ibW9kYWwtaW5wdXQiIHBsYWNlaG9sZGVyPSJhcG5hIG5hbSBs"
-        "aWtoZW4iPjxpbnB1dCB0eXBlPSJ0ZXh0IiBpZD0idXNlcnBob25lIiBjbGFzcz0ibW9kYWwtaW5w"
-        "dXQiIHBsYWNlaG9sZGVyPSJtb2JpbGUgbnVtYmVyIj48YnV0dG9uIGNsYXNzPSJhdXRoLWJ0biIg"
-        "c3R5bGU9IndpZHRoOjEwMCU7YmFja2dyb3VuZC1jb2xvcjojZTNlM2UzO2NvbG9yOiMxMzEzMTQ7"
-        "cGFkZGluZzoxNHB4O21hcmdpbi10b3A6MTBweDsiIG9uY2xpY2s9InNlbmREZW1vT1RQKCI+T1RQ"
-        "IGJoZWplbjwvYnV0dG9uPjxidXR0b24gY2xhc3M9ImF1dGgtYnRuIiBzdHlsZT0id2lkdGg6MTAw"
-        "JTttYXJnaW4tdG9wOjZweDtiYWNrZ3JvdW5kOiMyZTMxMzU7Y29sb3I6I2UzZTMzMzsiIG9uY2xp"
-        "Y2s9ImNsb3NlQXV0aE1vZGFsKCkiPmJhbmQga2FyZW48L2J1dHRvbj48L2Rpdj48GRpdiBjbGFz"
-        "cz0ibW9kYWwtY29udGVudCIgaWQ9Im90cEJveCIgc3R5bGU9ImRpc3BsYXk6bm9uZTsiPjxoMz7a"
-        "dCBvdHAgY29kZTwvaDM+PHAgc3R5bGU9ImZvbnQtc2l6ZToxM3B4O2NvbG9yOiNmZjZkMDA7Ij5k"
-        "ZW1vIE9UUCAnMTIzNCc8L3A+PGlucHV0IHR5cGU9Im51bWJlciIgaWQ9Im90cElucHV0IiBjbGFz"
-        "cz0ibW9kYWwtaW5wdXQiIHBsYWNlaG9sZGVyPSJPVFAgY29kZSI+PGJ1dHRvbiBjbGFzcz0iYXV0"
-        "aC1idG4iIHN0eWxlPSJ3aWR0aDoxMDAlO2JhY2tncm91bmQtY29sb3I6I2UzZTMzMztjb2xvcjoj"
-        "MTMxMzE0O3BhZGRpbmc6MTRweDttYXJnaW4tdG9wOjEwcHg7IiBvbmNsaWNrPSJ2ZXJpZnlEZW1v"
-        "T1RQKCI+c2F0eWFwaXQga2FyZW48L2J1dHRvbj48L2Rpdj48L2Rpdj48c2NyaXB0PmxldCBjdXJy"
-        "ZW50VXNlck5hbWU9IiI7bGV0IGN1cnJlbnRVc2VyUGhvbmU9IiI7bGV0IGJhc2U2NUltYWdlU3Ry"
-        "PSI7d2luZG93Lm9ubG9hZD1mdW5jdGlvbigpe2xldCBzYXZlZFBob25lPWxvY2FsU3RvcmFnZS5n"
-        "ZXRJdGVtKCJkYWlyeV9waG9uZSIpO2xldCBzYXZlZE5hbWU9bG9jYWxTdG9yYWdlLmdldEl0ZW0o"
-        "ImRhaXJ5X25hbWUiKTtpZihzYXZlZFBob25lJiZzYXZlZE5hbWUpe2N1cnJlbnRVc2VyTmFtZT1z"
-        "YXZlZE5hbWU7Y3VycmVudFVzZXJQaG9uZT1zYXZlZFBob25lO2V4ZWN1dGVMb2dpbihzYXZlZFBo"
-        "b25lPT09IlNodWJoYW03OSIpO319O2Z1bmN0aW9uIHN3aXRjaFBhZ2UocGFnZUlkLGJ0bklkKXtk"
-        "b2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCcucGFnZS1jb2contentJykuZm9yRWFjaChwPT5wLmNs"
-        "YXNzTGlzdC5yZW1vdmUoJ2FjdGl2ZS1wYWdlJykpO2RvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwo"
-        "Jy5uYXYtaXRlbScpLmZvckVhY2goYj0+Yi5jbGFzc0xpc3QucmVtb3ZlKCdhY3RpdmUnKSk7ZG9j"
-        "dW1lbnQuZ2V0RWxlbWVudEJ5SWQocGFnZUlkKS5jbGFzc0xpc3QuYWRkKCdhY3RpdmUtcGFnZScp"
-        "O2lmKGJ0bklkKWRvY3VtZW50LmdldCheckRWxlbWVudEJ5SWQoYnRuSWQpLmNsYXNzTGlzdC5hZGQo"
-        "J2FjdGl2ZScpO2lmKHBhZ2VJZD09PSdjaGF0UGFnZScpY2hhdENvbnRhaW5lci5zY3JvbGxUb3A9"
-        "Y2hhdENvbnRhaW5lci5zY3JvbGxIZWlnaHQ7aWYocGFnZUlkPT09J2RhaXJ5UGFnZScpe2xvYWRD"
-        "YXR0bGVSZWNvcmRzKCk7bG9hZE1pbGtSZWNvcmRzKCk7fX1mdW5jdGlvbiBoYW5kbGVBdXRoQ2xp"
-        "Y2soKXtpZihkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYXV0aEJ0bicpLmlubmVyVGV4dD09PSJs"
-        "b2dvdXQiKXtsb2NhbFN0b3JhZ2UuY2xlYXIoKTtjdXJyZW50VXNlck5hbWU9IiI7Y3VycmVudFVz"
-        "ZXJQaG9uZT0iIjtkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYXV0aEJ0bicpLmlubmVyVGV4dD0i"
-        "bG9naW4iO2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdib3R0b21OYXYnKS5zdHlsZS5kaXNwbGF5"
-        "PSbub25lJztkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYnRuLWFkbWluJykuc3R5bGUuZGlzcGxh"
-        "eT0nbm9uZSc7c3dpdGNoUGFnZSgnd2VsY29tZVBhZ2UnKTt9ZWxzZXtkb2N1bWVudC5nZXRFbGVt"
-        "ZW50QnlJZCgnYXV0aE1vZGFsJykuc3R5bGUuZGlzcGxheT0nZmxleCc7ZG9jdW1lbnQuZ2V0RWxl"
-        "bWVudEJ5SWQoJ2xvZ2luQm94Jykuc3R5bGUuZGlzcGxheT0nYmxvY2snO2RvY3VtZW50LmdldEVs"
-        "ZW1lbnRCeUlkKCdvdHBCb3gnKS5zdHlsZS5kaXNwbGF5PSbub25lJzt9fWZ1bmN0aW9uIGNsb3Nl"
-        "QXV0aE1vZGFsKCl7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2F1dGhNb2RhbCcpLnN0eWxlLmRp"
-        "c3BsYXk9J25vbmUnO31mdW5jdGlvbiBzZW5kRGVtb09UUCgpe2N1cnJlbnRVc2VyTmFtZT1kb2N1"
-        "bWVudC5nZXRFbGVtZW50QnlJZCgndXNlcm5hbWUnKS52YWx1ZS50cmltKCk7Y3VycmVudFVzZXJQ"
-        "aG9uZT1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndXNlcnBob25lJykudmFsdWUudHJpbSgpO2lm"
-        "KCFjdXJyZW50VXNlck5hbWV8fCFjdXJyZW50VXNlclBob25lKXthbGVydCgncG9vcmkgaW5mb3Jt"
-        "YXRpb24gYmhhcmVuIScpO3JldHVybjt9aWYoY3VycmVudFVzZXJQaG9uZT09PSdTaHViaGFtNzkn"
-        "KXtsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgiZGFpcnlfcGhvbmUiLCJTaHViaGFtNzkiKTtsb2NhbFN0"
-        "b3JhZ2Uuc2V0SXRlbSgiZGFpcnlfbmFtZSIsIkFkbWluIik7ZXhlY3V0ZUxvZ2luKHRydWUpO3Jl"
-        "dHVybjt9aWYoY3VycmVudFVzZXJQaG9uZS5sZW5ndGg8MTApe2FsZXJ0KCdzYWhpIG1vYmlsZSBu"
-        "dW1iZXIgZGFsZW4hJyk7cmV0dXJuO31kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbG9naW5Cb3gn"
-        "KS5zdHlsZS5kaXNwbGF5PSbub25lJztkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnb3RwQm94Jyku"
-        "c3R5bGUuZGlzcGxheT0nYmxvY2snO31mdW5jdGlvbiB2ZXJpZnlEZW1vT1RQKCl7bGV0IG90cD1k"
-        "b2N1bWVudC5nZXRFbGVtZW50QnlJZCgnb3RwSW5wdXQnKS52YWx1ZS50cmltKCk7aWYob3RwPT09"
-        "JzEyMzQnKXtsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgiZGFpcnlfcGhvbmUiLGN1cnJlbnRVc2VyUGhv"
-        "bmUpO2xvY2FsU3RvcmFnZS5zZXRJdGVtKCJkYWlyeV9uYW1lIixjdXJyZW50VXNlck5hbWUpO2V4"
-        "ZWN1dGVMb2dpbihmYWxzZSk7fWVsc2V7YWxlcnQoJ2dhbGF0IE9UUEEnKTt9fWZ1bmN0aW9uIGV4"
-        "ZWN1dGVMb2dpbihpc0FkbWluKXtjbG9zZUF1dGhNb2RhbCgpO2RvY3VtZW50LmdldEVsZW1lbnRC"
-        "eUlkKCdib3R0b21OYXYnKS5zdHlsZS5kaXNwbGF5PSdmbGV4Jztkb2N1bWVudC5nZXRFbGVtZW50"
-        "QnlJZCgnYXV0aEJ0bicpLmlubmVyVGV4dD0ibG9nb3V0IjtpZihpc0FkbWluKXtkb2N1bWVudC5n"
-        "ZXRFbGVtZW50QnlJZCgnYnRuLWFkbWluJykuc3R5bGUuZGlzcGxheT0nZmxleCc7c3dpdGNoUGFn"
-        "ZSgnYWRtaW5QYWdlJywnYnRuLWFkbWluJyk7fWVsc2V7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQo"
-        "J2J0bi1hZG1pbicpLnN0eWxlImRpc3BsYXk9J25vbmUnO3N3aXRjaFBhZ2UoJ2NoYXRQYWdlJywn"
-        "YnRuLWNoYXQnKTt9fWZ1bmN0aW9uIHN0YXJ0Vm9pY2VSZWNvZ25pdGlvbigpe3dpbmRvdy5TcGVl"
-        "Y2hSZWNvZ25pdGlvbj13aW5kb3cuU3BlZWNoUmVjb2duaXRpb258fHdpbmRvdy53ZWJraXRTcGVl"
-        "Y2hSZWNvZ25pdGlvbjsxaWYoIXdpbmRvdy5TcGVlY2hSZWNvZ25pdGlvbil7YWxlcnQoIm1pYyBz"
-        "dXBwb3J0IG5haGluIGhhaS4iKTtyZXR1cm47fWNvbnN0IHJlYz1uZXcgU3BlZWNoUmVjb2duaXRp"
-        "b24oKTtyZWMubGFuZz0iaGktSU4iO2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtaWNCdG4nKS5p"
-        "bm5lclRleHQ9Ik9UTFAiO3JlYy5vbnJlc3VsdD0oZSk9Pntkb2N1bWVudC5nZXRFbGVtZW50QnlJ"
-        "ZCgncXVlcnknKS52YWx1ZT1lLnJlc3VsdHNbMF1bMF0udHJhbnNjcmlwdDt9O3JlYy5vbmVuZD1m"
-        "dW5jdGlvbigpe2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtaWNCdG4nKS5pbm5lclRleHQ9Im1p"
-        "YyI7fTtyZWMuc3RhcnQoKTt9ZnVuY3Rpb24gaGFuZGxlSW1hZ2VVcGxvYWQoaW5wdXQpe2NvbnN0"
-        "IGZpbGU9aW5wdXQuZmlsZXNbMF07aWYoIWZpbGUpcmV0dXJuO2NvbnN0IHJlYWRlcj1uZXcgRmls"
-        "ZVJlYWRlcigpO3JlYWRlci5vbmxvYWQ9ZnVuY3Rpb24oZSl7YmFzZTY0SW1hZ2VTdHI9ZS50YXJn"
-        "ZXQucmVzdWx0LnNwbGl0KCcsJylbMV07YWxlcnQoJ2ZvdG8gYXR0YWNoIGhvIGdheWkhJyk7fTty"
-        "ZWFkZXIucmVhZEFzRGF0YVVSTChmaWxlKTt9YXN5bmMgZnVuY3Rpb24gYXNrQUkoKXtsZXQgaW5w"
-        "dXRGaWVsZD1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncXVlcnknKTtsZXQgcT1pbnB1dEZpZWxk"
-        "LnZhbHVlLnRyaW0oKTtsZXQgY2hhdENvbnRhaW5lcj1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgn"
-        "Y2hhdENvbnRhaW5lcicpO2lmKCFxJiYhYmFzZTY0SW1hZ2VTdHIpcmV0dXJuO2RvY3VtZW50Lmdl"
-        "dEVsZW1lbnRCeUlkKCdnbG9iYWxTcGlubmVyJykuc3R5bGUuZGlzcGxheT0nYmxvY2snO2xldCB3"
-        "cmFwcGVyPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpO3dyYXBwZXIuY2xhc3NOYW1lPSdt"
-        "ZXNzYWdlLXdyYXBwZXIgdXNlci13cmFwcGVyJztsZXQgdURpdj1kb2N1bWVudC5jcmVhdGVFbGVt"
-        "ZW50KCdkaXYnKTt1RGl2LmNsYXNzTmFtZT0nbWVzc2FnZSB1c2VyLW1lc3NhZ2UnO3VEaXYuaW5u"
-        "ZXJUZXh0PXF8fCJmb3RvIHNlbmQiO2lmKGJhc2U2NUltYWdlU3RyKXtsZXQgaW1nPWRvY3VtZW50"
-        "LmNyZWF0ZUVsZW1lbnQoJ2ltZycpO2ltZy5jbGFzc05hbWU9J2NoYXQtaW1nJztpbWcuc3JjPSJk"
-        "YXRhOmltYWdlL2pwZWc7YmFzZTY0LCIrYmFzZTY0SW1hZ2VTdHI7dURpdi5hcHBlbmRDaGlsZChp"
-        "bWcpO313cmFwcGVyLmFwcGVuZENoaWxkKHVEaXYpO2NoYXRDb250YWluZXIuYXBwZW5kQ2hpbGQo"
-        "d3JhcHBlcik7aW5wdXRGaWVsZC52YWx1ZT0iIjtjaGF0Q29udGFpbmVyLnNjcm9sbFRvcD1jaGF0"
-        "Q29udGFpbmVyLnNjcm9sbEhlaWdodDt0cnl7bGV0IHJlc3BvbnNlPWF3YWl0IGZldGNoKCcvY2hh"
-        "dF9wcm8nLHttZXRob2Q6J1BPU1QnLGhlYWRlcnM6eydDb250ZW50LVR5cGUnOidhcHBsaWNhdGlv"
-        "bi9qc29uJ30sYm9keTpKU09OLnN0cmluZ2lmeSh7cGhvbmU6Y3VycmVudFVzZXJQaG9uZSxxdWVy"
-        "eTpxLGltYWdlX2Jhc2U2NDpiYXNlNjRJbWFnZVN0cn0pfSk7bGV0IGRhdGE9YXdhaXQgcmVzcG9u"
-        "c2UuanNvbigpO2Jhc2U2NUltYWdlU3RyPSI7bGV0IGFpV3JhcHBlcj1kb2N1bWVudC5jcmVhdGVF"
-        "bGVtZW50KCdkaXYnKTthaVdyYXBwZXIuY2xhc3NOYW1lPSdtZXNzYWdlLXdyYXBwZXIgYWktd3Jh"
-        "cHBlcic7bGV0IGFpRGl2PWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpO2FpRGl2LmNsYXNz"
-        "TmFtZT0nbWVzc2FnZSBhaS1tZXNzYWdlJzthaURpdi5pbm5lclRleHQ9ZGF0YS5yZXNwb25zZXxs"
-        "fSInO2FpV3JhcHBlci5hcHBlbmRDaGlsZChhaURpdik7Y2hhdENvbnRhaW5lci5hcHBlbmRDaGls"
-        "ZChhaVdyYXBwZXIpO31jYXRjaChlKXtsZXQgYWlXcmFwcGVyPWRvY3VtZW50LmNyZWF0ZUVsZW1l"
-        "bnQoJ2RpdicpO2FpV3JhcHBlci5jbGFzc05hbWU9J21lc3NhZ2Utd3JhcHBlciBhaS13cmFwcGVy"
-        "JztsZXQgYWlEaXY9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCCOJ2RpdicpO2FpRGl2LmNsYXNzTmFt"
-        "ZT0nbWVzc2FnZSBhaS1tZXNzYWdlJzthaURpdi5pbm5lclRleHQ9J2Vycm9yLCByZXRyeS4nO2Fp"
-        "V3JhcHBlci5hcHBlbmRDaGlsZChhaURpdik7Y2hhdENvbnRhaW5lci5hcHBlbmRDaGlsZChhaVdy"
-        "YXBwZXIpO31kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZ2xvYmFsU3Bpbm5lcicpLnN0eWxlLmRp"
-        "c3BsYXk9J25vbmUnO2NoYXRDb250YWluZXIuc2Nyb2xsVG9wPWNoYXRDb250YWluZXIuc2Nyb2xs"
-        "SGVpZ2h0O31hc3luYyBmdW5jdGlvbiBsb2FkQ2hhdEhpc3RvcnkoKXtsZXQgY2hhdENvbnRhaW5l"
-        "cj1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnY2hhdENvbnRhaW5lcicpO3RyeXtsZXQgcmVzPWF3"
-        "YWl0IGZldGNoKCcvZ2V0X2NoYXQ/cGhvbmU9JytjdXJyZW50VXNlclBob25lKTtsZXQgZGF0YT1h"
-        "d2FpdCByZXMuanNvbigpO2lmKGRhdGEmJmRhdGEubGVuZ3RoPjApe2NoYXRDb250YWluZXIuaW5u"
-        "ZXJIVE1MPSI7ZGF0YS5mb3JFYWNoKG1zZz0+e2xldCB3cmFwcGVyPWRvY3VtZW50LmNyZWF0ZUVs"
-        "ZW1lbnQoJ2RpdicpO3dyYXBwZXIuY2xhc3NOYW1lPW1zZy5zZW5kZXI9PT0ndXNlcic/J21lc3Nh"
-        "Z2Utd3JhcHBlciB1c2VyLXdyYXBwZXInOidtZXNzYWdlLXdyYXBwZXIgYWktd3JhcHBlcic7bGV0"
-        "IGRpdj1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTtkaXYuY2xhc3NOYW1lPW1zZy5zZW5k"
-        "ZXI9PT0ndXNlcic/J21lc3NhZ2UgdXNlci1tZXNzYWdlJzonbWVzc2FnZSBhaS1tZXNzYWdlJztk"
-        "aXYuaW5uZXJUZXh0PW1zZy5tZXNzYWdlO3dyYXBwZXIuYXBwZW5kQ2hpbGQoZGl2KTtjaGF0Q29u"
-        "dGFpbmVyLmFwcGVuZENoaWxkKHdyYXBwZXIpO30pO2NoYXRDb250YWluZXIuc2Nyb2xsVG9wPWNo"
-        "YXRDb250YWluZXIuc2Nyb2xsSGVpZ2h0O319Y2F0Y2goZSl7fX1hc3luYyBmdW5jdGlvbiBhZGRD"
-        "YXR0bGVCYWNrZW5kKCl7bGV0IG5hbWU9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NhdHRsZU5h"
-        "bWUnKS52YWx1ZS50cmltKCk7bGV0IHR5cGU9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NhdHRs"
-        "ZVR5cGUnKS52YWx1ZTtsZXQgZGF0ZT1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnY2F0dGxlRGF0"
-        "ZScpLnZhbHVlO2lmKCFuYW1lfHwhZGF0ZSl7YWxlcnQoJ2JoYXJlbiEnKTtyZXR1cm47fWF3YWl0"
-        "IGZldGNoKCcvYWRkX2NhdHRsZScse21ldGhvZDonUE9TVCxoZWFkZXJzOntgQ29udGVudC1UeXBl"
-        "YDonYXBwbGljYXRpb24vanNvbid9LGJvZHk6SlNPTi5zdHJpbmdpZnkoe3Bob25lOmN1cnJlbnRV"
-        "c2VyUGhvbmUsbmFtZTpuYW1lLHR5cGU6dHlwZSxkYXRlX3RleHQ6ZGF0ZX0pfSk7ZG9jdW1lbnQu"
-        "Z2V0RWxlbWVudEJ5SWQoJ2NhdHRsZU5hbWUnKS52YWx1ZT0iIjtsb2FkQ2F0dGxlUmVjb3Jkcygp"31hc3luYyBmdW5jdGlvbiBsb2FkQ2F0dGxlUmVjb3Jkcygpe3RyeXtsZXQgcmVzPWF3YWl0IGZldGNo"
-        "KCcvZ2V0X2NhdHRsZT9waG9uZT0nK2N1cnJlbnRVc2VyUGhvbmUpO2xldCBkYXRhPWF3YWl0IHJl"
-        "cy5qc29uKCk7bGV0IGxpc3Q9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NhdHRsZUxpc3QnKTts"
-        "aXN0LmlubmVySFRNTD0iPGI+UmVjb3JkOjwvYj48YnI+IjtpZihkYXRhJiZkYXRhLmxlbmd0aD4w"
-        "KXtkYXRhLmZvckVhY2goYz0+e2xpc3QuaW5uZXJIVE1MKz1gJiN4MjAyMjsgPGI+JHtjLm5hbWV9"
-        "PC9iPiAoJHtjLnR5cGV9KSAtICR7Yy5kYXRlX3RleHR9PGJyPmA7fSk7fX1jYXRjaChlKXt9fWFz"
-        "eW5jIGZ1bmN0aW9uIGFkZE1pbGtCYWNrZW5kKCl7bGV0IGxpdD1wYXJzZUZsb2F
+    html_content = """<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>AgriDairy Expert AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; font-family: 'Google Sans', Arial, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #131314; color: #e3e3e3; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background-color: #131314; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2f31; }
+        .brand-title { font-size: 22px; font-weight: 400; color: #e3e3e3; }
+        .auth-btn { background-color: #2e3135; color: #e3e3e3; border: none; padding: 10px 24px; border-radius: 100px; font-size: 14px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+        .auth-btn:hover { background-color: #3c4043; }
+        .ad-container { background-color: #1e1f20; color: #9aa0a6; text-align: center; padding: 10px; font-size: 12px; margin: 5px auto; max-width: 750px; width: 95%; border-radius: 8px; border: 1px solid #2d2f31; }
+        .page-content { flex: 1; display: none; overflow-y: auto; padding: 20px; max-width: 750px; width: 100%; margin: 0 auto; }
+        .active-page { display: flex; flex-direction: column; }
+        .chat-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 32px; padding-bottom: 130px; }
+        .message-wrapper { display: flex; flex-direction: column; width: 100%; }
+        .message { font-size: 16px; line-height: 1.6; word-wrap: break-word; color: #e3e3e3; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .user-wrapper { align-items: flex-end; }
+        .user-message { background-color: #2b2a2a; padding: 12px 20px; border-radius: 20px; border: 1px solid #3c4043; display: inline-block; }
+        .ai-wrapper { align-items: flex-start; }
+        .ai-message { background-color: transparent; white-space: pre-wrap; padding-left: 4px; }
+        .chat-img { max-width: 250px; border-radius: 14px; margin-top: 10px; display: block; border: 1px solid #3c4043; }
+        .input-container { background: linear-gradient(to top, #131314 70%, transparent); padding: 20px 15px; display: flex; justify-content: center; position: fixed; bottom: 65px; left: 0; right: 0; z-index: 5; }
+        .input-box { max-width: 750px; width: 100%; display: flex; gap: 10px; align-items: center; background: #1e1f20; padding: 8px 18px; border-radius: 100px; border: 1px solid #2d2f31; }
+        input[type="text"] { flex: 1; padding: 10px 12px; border: none; font-size: 16px; outline: none; background: transparent; color: #e3e3e3; }
+        input[type="text"]::placeholder { color: #8e918f; }
+        .icon-btn { background: transparent; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #c4c7c5; transition: background 0.2s; }
+        .icon-btn:hover { background: #2e3135; }
+        .send-btn { color: #e3e3e3; font-size: 22px; background: transparent; border: none; cursor: pointer; padding: 0 8px; }
+        .info-card { background: #1e1f20; padding: 24px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #2d2f31; }
+        .info-card h3 { margin-top: 0; color: #ffffff; font-size: 18px; font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { padding: 14px; text-align: left; font-size: 15px; border-bottom: 1px solid #2d2f31; color: #e3e3e3; }
+        th { color: #8e918f; font-weight: 500; }
+        .nav-bar { background-color: #131314; border-top: 1px solid #2d2f31; position: fixed; bottom: 0; left: 0; right: 0; height: 65px; display: flex; justify-content: space-around; align-items: center; z-index: 10; }
+        .nav-item { background: none; border: none; color: #8e918f; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; font-weight: 500; gap: 4px; }
+        .nav-item.active { color: #ffffff; font-weight: 700; }
+        .nav-icon { font-size: 22px; }
+        .dashboard-counter { background: #1e1f20; color: #e3e3e3; padding: 14px; text-align: center; font-size: 14px; font-weight: 500; margin-bottom: 20px; border-radius: 12px; border: 1px solid #2d2f31; }
+        .admin-section { background: #131314; padding: 20px; border-radius: 16px; border: 1px solid #2d2f31; margin-bottom: 20px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(2px); }
+        .modal-content { background: #1e1f20; padding: 32px; border-radius: 24px; width: 90%; max-width: 360px; text-align: center; border: 1px solid #2d2f31; }
+        .modal-input { width: 100%; padding: 14px; margin: 12px 0; border: 1px solid #2d2f31; border-radius: 12px; font-size: 15px; outline: none; background: #131314; color: #e3e3e3; }
+        .gemini-loader { display: none; width: 100%; height: 3px; background: linear-gradient(to right, #4285f4, #34a853, #fbbc05, #ea4335); background-size: 400% 400%; animation: shimmer 1.5s linear infinite; position: fixed; bottom: 145px; left: 0; z-index: 100; }
+        @keyframes shimmer { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand-title">AgriDairy Expert AI</div>
+        <button class="auth-btn" id="authBtn" onclick="handleAuthClick()">लॉगिन</button>
+    </div>
+    <div class="ad-container">Google Ads यहाँ दिखाई देंगे</div>
+    <div class="gemini-loader" id="globalSpinner"></div>
+    <div id="welcomePage" class="page-content active-page" style="text-align: center; padding-top: 100px;">
+        <h2 style="font-weight: 400; font-size: 32px; margin-bottom: 12px; color: #ffffff;">नमस्ते, मैं आपका डेयरी गाइड हूँ</h2>
+        <p style="color: #8e918f; font-size: 16px; padding: 0 30px; line-height: 1.6; margin-bottom: 35px;">पशुओं के स्वास्थ्य, रोगों के सटीक इलाज और दूध डायरी का हिसाब रखने के लिए सुरक्षित शुरुआत करें।</p>
+        <button class="auth-btn" style="background-color: #e3e3e3; color: #131314; padding: 14px 40px; font-size: 15px;" onclick="handleAuthClick()">लॉगिन करें</button>
+    </div>
+    <div id="chatPage" class="page-content">
+        <div class="chat-container" id="chatContainer">
+            <div class="message-wrapper ai-wrapper">
+                <div class="message ai-message">राम-राम भाई! मैं आपका AgriDairy Expert AI हूँ। पशुपालन, चिकित्सा या चारे से जुड़ा कोई भी सवाल पूछें, या नीचे कैमरा बटन दबाकर सीधे फोटो भेजें।</div>
+            </div>
+        </div>
+        <div class="input-container">
+            <div class="input-box">
+                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+                <button class="icon-btn" onclick="document.getElementById('imageInput').click()">📷</button>
+                <button class="icon-btn" id="micBtn" onclick="startVoiceRecognition()">🎤</button>
+                <input type="text" id="query" placeholder="यहाँ संदेश लिखें..." onkeypress="if(event.key === 'Enter') askAI()">
+                <button class="send-btn" onclick="askAI()">➔</button>
+            </div>
+        </div>
+    </div>
+    <div id="ratePage" class="page-content">
+        <div class="info-card">
+            <h3>📈 ताज़ा बाज़ार और मंडी भाव</h3>
+            <table>
+                <tr><th>वस्तु (Item)</th><th>भाव (Price)</th></tr>
+                <tr><td>गाय का दूध (प्रति लीटर - 4.0 Fat)</td><td id="lbl_cow" style="font-weight: 700;">COW_RATE_PLACEHOLDER</td></tr>
+                <tr><td>भैंस का दूध (प्रति लीटर - 6.5 Fat)</td><td id="lbl_buff" style="font-weight: 700;">BUFF_RATE_PLACEHOLDER</td></tr>
+                <tr><td>सरसों खली (प्रति क्विंटल)</td><td id="lbl_must">MUST_RATE_PLACEHOLDER</td></tr>
+                <tr><td>पशु आहार/फीड (50KG बैग)</td><td id="lbl_bag">BAG_RATE_PLACEHOLDER</td></tr>
+            </table>
+        </div>
+    </div>
+    <div id="dairyPage" class="page-content">
+        <div class="info-card">
+            <h3>📋 नया पशु रिकॉर्ड जोड़ें</h3>
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                <input type="text" id="cattleName" class="modal-input" placeholder="गाय/भैंस का नाम या नंबर" style="flex: 1; margin: 0;">
+                <select id="cattleType" style="padding: 12px; border-radius: 12px; border: 1px solid #2d2f31; background: #131314; color: #e3e3e3;">
+                    <option value="गाय">गाय 🐄</option>
+                    <option value="भैंस">भैंस 🐃</option>
+                </select>
+            </div>
+            <label style="font-size: 13px; color: #8e918f;">संभावित बियाने की तारीख:</label>
+            <input type="date" id="cattleDate" class="modal-input" style="margin-top: 6px;">
+            <button class="auth-btn" style="width: 100%; background: #e3e3e3; color: #131314;" onclick="addCattleBackend()">सुरक्षित करें</button>
+            <div id="cattleList" style="margin-top: 20px; font-size: 15px; line-height: 1.6;"></div>
+        </div>
+        <div class="info-card">
+            <h3>🥛 मासिक दूध डायरी</h3>
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                <input type="number" id="milkLitres" placeholder="कुल लीटर दूध" class="modal-input" style="width: 50%; margin: 0;">
+                <input type="number" id="milkFat" placeholder="फैट (Fat)" class="modal-input" style="width: 50%; margin: 0;">
+            </div>
+            <button class="auth-btn" style="width: 100%; background: #e3e3e3; color: #131314;" onclick="addMilkBackend()">हिसाब जोड़ें</button>
+            <div id="milkResult" style="margin-top: 15px; font-weight: 700; color: #ffff;"></div>
+        </div>
+    </div>
+    <div id="schemePage" class="page-content">
+        <div class="info-card">
+            <h3 id="lbl_sch_title" style="font-size: 20px; font-weight: 500;">SCHEME_TITLE_PLACEHOLDER</h3>
+            <p id="lbl_sch_detail" style="line-height: 1.7; color: #c4c7c5; font-size: 16px;">SCHEME_DETAIL_PLACEHOLDER</p>
+        </div>
+    </div>
+    <div id="adminPage" class="page-content">
+        <div class="dashboard-counter">👑 एडमिन डैशबोर्ड | कुल विज़िटर्स: VISITOR_COUNT_PLACEHOLDER</div>
+        <div class="admin-section">
+            <h4>🔄 मंडी रेट अपडेट करें</h4>
+            <input type="text" id="txt_cow" class="modal-input" placeholder="गाय दूध का नया रेट">
+            <input type="text" id="txt_buff" class="modal-input" placeholder="भैंस दूध का नया रेट">
+            <button class="auth-btn" style="background: #e3e3e3; color: #131314;" onclick="updateRatesBackend()">मंडी रेट बदलें</button>
+        </div>
+        <div class="admin-section">
+            <h4>🔄 सरकारी योजना बदलें</h4>
+            <input type="text" id="txt_sch_title" class="modal-input" placeholder="योजना का नाम">
+            <textarea id="txt_sch_detail" class="modal-input" placeholder="योजना की पूरी डिटेल लिखें" style="height: 100px; font-family: inherit; border-radius: 12px; border: 1px solid #2d2f31; padding: 12px; width: 100%; outline: none; background: #131314; color: #e3e3e3;"></textarea>
+            <button class="auth-btn" style="background: #e3e3e3; color: #131314; margin-top: 12px;" onclick="updateSchemeBackend()">योजना अपलोड करें</button>
+        </div>
+    </div>
+    <div class="nav-bar" id="bottomNav" style="display: none;">
+        <button class="nav-item active" id="btn-chat" onclick="switchPage('chatPage', 'btn-chat')"><span class="nav-icon">💬</span><span>चैट</span></button>
+        <button class="nav-item" id="btn-rate" onclick="switchPage('ratePage', 'btn-rate')"><span class="nav-icon">📈</span><span>मंडी रेट</span></button>
+        <button class="nav-item" id="btn-dairy" onclick="switchPage('dairyPage', 'btn-dairy')"><span class="nav-icon">📝</span><span>मेरी डेयरी</span></button>
+        <button class="nav-item" id="btn-scheme" onclick="switchPage('schemePage', 'btn-scheme')"><span class="nav-icon">📜</span><span>योजनाएं</span></button>
+        <button class="nav-item" id="btn-admin" style="display: none;" onclick="switchPage('adminPage', 'btn-admin')"><span class="nav-icon">👑</span><span>कंट्रोल</span></button>
+    </div>
+    <div class="modal" id="authModal">
+        <div class="modal-content" id="loginBox">
+            <h3 style="font-weight: 500; margin-top: 0; margin-bottom: 15px;">प्रवेश द्वार</h3>
+            <input type="text" id="username" class="modal-input" placeholder="अपना नाम लिखें">
+            <input type="text" id="userphone" class="modal-input" placeholder="मोबाइल नंबर / एडमिन पासवर्ड">
+            <button class="auth-btn" style="width: 100%; background-color: #e3e3e3; color: #131314; padding: 14px; margin-top: 10px;" onclick="sendDemoOTP()">OTP भेजें</button>
+            <button class="auth-btn" style="width: 100%; margin-top: 6px; background: #2e3135; color: #e3e3e3;" onclick="closeAuthModal()">बंद करें</button>
+        </div>
+        <div class="modal-content" id="otpBox" style="display: none;">
+            <h3>🔐 ओटीपी कोड</h3>
+            <p style="font-size: 13px; color: #ff6d00; margin-bottom: 10px;">डेमो OTP '1234' दर्ज करें</p>
+            <input type="number" id="otpInput" class="modal-input" placeholder="4 अंकों का OTP डालें">
+            <button class="auth-btn" style="width: 100%; background-color: #e3e3e3; color: #131314; padding: 14px; margin-top: 10px;" onclick="verifyDemoOTP()">सत्यापित करें</button>
+        </div>
+    </div>
+    <script>
+        let currentUserName = "";
+        let currentUserPhone = "";
+        let base64ImageStr = "";
+        window.onload = function() {
+            let savedPhone = localStorage.getItem("dairy_phone");
+            let savedName = localStorage.getItem("dairy_name");
+            if(savedPhone && savedName) {
+                currentUserName = savedName;
+                currentUserPhone = savedPhone;
+                executeLogin(savedPhone === "Shubham79");
+            }
+        };
+        function switchPage(pageId, btnId) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active-page'));
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active-page');
+            if(btnId) document.getElementById(btnId).classList.add('active');
+            if(pageId === 'chatPage') loadChatHistory();
+            if(pageId === 'dairyPage') { loadCattleRecords(); loadMilkRecords(); }
+        }
+        function handleAuthClick() {
+            if(document.getElementById('authBtn').innerText === "लॉगआऊट") {
+                localStorage.clear();
+                currentUserName = "";
+                currentUserPhone = "";
+                document.getElementById('authBtn').innerText = "लॉगिन";
+                document.getElementById('bottomNav').style.display = 'none';
+                document.getElementById('btn-admin').style.display = 'none';
+                switchPage('welcomePage');
+            } else {
+                document.getElementById('authModal').style.display = 'flex';
+                document.getElementById('loginBox').style.display = 'block';
+                document.getElementById('otpBox').style.display = 'none';
+            }
+        }
+        function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
+        function sendDemoOTP() {
+            currentUserName = document.getElementById('username').value.trim();
+            currentUserPhone = document.getElementById('userphone').value.trim();
+            if(!currentUserName || !currentUserPhone) { alert('कृपया पूरी जानकारी दर्ज करें!'); return; }
+            if(currentUserPhone === 'Shubham79') {
+                localStorage.setItem("dairy_phone", "Shubham79");
+                localStorage.setItem("dairy_name", "Admin");
+                executeLogin(true);
+                return;
+            }
+            if(currentUserPhone.length < 10) { alert('कृपया सही मोबाइल नंबर डालें!'); return; }
+            document.getElementById('loginBox').style.display = 'none';
+            document.getElementById('otpBox').style.display = 'block';
+        }
+        function verifyDemoOTP() {
+            let otp = document.getElementById('otpInput').value.trim();
+            if(otp === '1234') {
+                localStorage.setItem("dairy_phone", currentUserPhone);
+                localStorage.setItem("dairy_name", currentUserName);
+                executeLogin(false);
+            } else { alert('गलत OTP कोड! कृपया 1234 उपयोग करें।'); }
+        }
+        function executeLogin(isAdmin) {
+            closeAuthModal();
+            document.getElementById('bottomNav').style.display = 'flex';
+            document.getElementById('authBtn').innerText = "लॉगआऊट";
+            if(isAdmin) {
+                document.getElementById('btn-admin').style.display = 'flex';
+                switchPage('adminPage', 'btn-admin');
+            } else {
+                document.getElementById('btn-admin').style.display = 'none';
+                switchPage('chatPage', 'btn-chat');
+            }
+        }
+        function startVoiceRecognition() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!window.SpeechRecognition) { alert("आपका डिवाइस माइक सपोर्ट नहीं कर रहा है।"); return; }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'hi-IN';
+            document.getElementById('micBtn').innerText = "🛑";
+            recognition.onresult = (event) => {
+                document.getElementById('query').value = event.results[0][0].transcript;
+            };
+            recognition.onend = () => { document.getElementById('micBtn').innerText = "🎤"; };
+            recognition.start();
+        }
+        function handleImageUpload(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                base64ImageStr = e.target.result.split(',')[1];
+                alert('📷 फोटो सफलतापूर्वक अटैच हो गई है!');
+            };
+            reader.readAsDataURL(file);
+        }
+        async function askAI() {
+            let inputField = document.getElementById('query');
+            let q = inputField.value.trim();
+            let chatContainer = document.getElementById('chatContainer');
+            if(!q && !base64ImageStr) return;
+            
+            document.getElementById('globalSpinner').style.display = 'block';
+            
+            let wrapper = document.createElement('div');
+            wrapper.className = 'message-wrapper user-wrapper';
+            let userDiv = document.createElement('div');
+            userDiv.className = 'message user-message';
+            userDiv.innerText = q || "📷 फोटो भेजी गई";
+            if(base64ImageStr) {
+                let img = document.createElement('img');
+                img.className = 'chat-img';
+                img.src = "data:image/jpeg;base64," + base64ImageStr;
+                userDiv.appendChild(img);
+            }
+            wrapper.appendChild(userDiv);
+            chatContainer.appendChild(wrapper);
+            inputField.value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            try {
+                let response = await fetch('/chat_pro', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone: currentUserPhone, query: q, image_base64: base64ImageStr })
+                });
+                let data = await response.json();
+                base64ImageStr = "";
+                let aiWrapper = document.createElement('div');
+                aiWrapper.className = 'message-wrapper ai-wrapper';
+                let aiDiv = document.createElement('div');
+                aiDiv.className = 'message ai-message';
+                aiDiv.innerText = data.response || "जवाब नहीं मिल पाया।";
+                aiWrapper.appendChild(aiDiv);
+                chatContainer.appendChild(aiWrapper);
+            } catch(e) {
+                let aiWrapper = document.createElement('div');
+                aiWrapper.className = 'message-wrapper ai-wrapper';
+                let aiDiv = document.createElement('div');
+                aiDiv.className = 'message ai-message';
+                aiDiv.innerText = 'कनेक्शन धीमा है भाई, कृपया एक बार दोबारा सेंड करें।';
+                aiWrapper.appendChild(aiDiv);
+                chatContainer.appendChild(aiWrapper);
+            }
+            document.getElementById('globalSpinner').style.display = 'none';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        async function loadChatHistory() {
+            let chatContainer = document.getElementById('chatContainer');
+            try {
+                let res = await fetch('/get_chat?phone=' + currentUserPhone);
+                let data = await res.json();
+                if(data && data.length > 0) {
+                    chatContainer.innerHTML = "";
+                    data.forEach(msg => {
+                        let wrapper = document.createElement('div');
+                        wrapper.className = msg.sender === 'user' ? 'message-wrapper user-wrapper' : 'message-wrapper ai-wrapper';
+                        let div = document.createElement('div');
+                        div.className = msg.sender === 'user' ? 'message user-message' : 'message ai-message';
+                        div.innerText = msg.message;
+                        wrapper.appendChild(div);
+                        chatContainer.appendChild(wrapper);
+                    });
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            } catch(e) {}
+        }
+        async function addCattleBackend() {
+            let name = document.getElementById('cattleName').value.trim();
+            let type = document.getElementById('cattleType').value;
+            let date = document.getElementById('cattleDate').value;
+            if(!name || !date) { alert('पूरी जानकारी भरें!'); return; }
+            await fetch('/add_cattle', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone: currentUserPhone, name: name, type: type, date_text: date})
+            });
+            document.getElementById('cattleName').value = "";
+            loadCattleRecords();
+        }
+        async function loadCattleRecords() {
+            try {
+                let res = await fetch('/get_cattle?phone=' + currentUserPhone);
+                let data = await res.json();
+                let list = document.getElementById('cattleList');
+                list.innerHTML = "<b>सुरक्षित पशु रिकॉर्ड:</b><br>";
+                if(data && data.length > 0) {
+                    data.forEach(c => {
+                        list.innerHTML += `• <b>${c.name}</b> (${c.type}) - तारीख: ${c.date_text}<br>`;
+                    });
+                }
+            } catch(e) {}
+        }
+        async function addMilkBackend() {
+            let lit = parseFloat(document.getElementById('milkLitres').value);
+            let fat = parseFloat(document.getElementById('milkFat').value);
+            if(!lit || !fat) { alert('सही मात्रा दर्ज करें भाई!'); return; }
+            let earn = lit * (fat * 11);
+            await fetch('/add_milk', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone: currentUserPhone, litres: lit, fat: fat, earning: earn})
+            });
+            document.getElementById('milkLitres').value = "";
+            document.getElementById('milkFat').value = "";
+            loadMilkRecords();
+        }
+        async function loadMilkRecords() {
+            try {
+                let res = await fetch('/get_milk?phone=' + currentUserPhone);
+                let data = await res.json();
+                let resDiv = document.getElementById('milkResult');
+                let totalL = 0, totalE = 0;
+                if(data && data.length > 0) {
+                    data.forEach(m => { totalL += m.litres; totalE += m.earning; });
+                }
+                resDiv.innerHTML = `🥛 कुल दूध: ${totalL.toFixed(1)} लीटर | 💰 कुल राशि: ₹${totalE.toFixed(2)}`;
+            } catch(e) {}
+        }
+        async function updateRatesBackend() {
+            let cow = document.getElementById('txt_cow').value.trim();
+            let buff = document.getElementById('txt_buff').value.trim();
+            if(cow) await fetch('/update_setting?key=milk_rate_cow&val=' + encodeURIComponent(cow));
+            if(buff) await fetch('/update_setting?key=milk_rate_buffalo&val=' + encodeURIComponent(buff));
+            alert('मंडी रेट लाइव बदल गया है।');
+        }
+        async function updateSchemeBackend() {
+            let title = document.getElementById('txt_sch_title').value.trim();
+            let detail = document.getElementById('txt_sch_detail').value.trim();
+            if(title) await fetch('/update_setting?key=scheme_title&val=' + encodeURIComponent(title));
+            if(detail) await fetch('/update_setting?key=scheme_detail&val=' + encodeURIComponent(detail));
+            alert('योजना लाइव हो चुकी है।');
+        }
+    </script>
+</body>
+</html>"""
+    
+    html_content = html_content.replace("VISITOR_COUNT_PLACEHOLDER", str(v_count))
+    html_content = html_content.replace("COW_RATE_PLACEHOLDER", data_dict.get("milk_rate_cow", "₹45"))
+    html_content = html_content.replace("BUFF_RATE_PLACEHOLDER", data_dict.get("milk_rate_buffalo", "₹70"))
+    html_content = html_content.replace("MUST_RATE_PLACEHOLDER", data_dict.get("feed_rate_mustard", "₹3,000"))
+    html_content = html_content.replace("BAG_RATE_PLACEHOLDER", data_dict.get("feed_rate_bag", "₹1,300"))
+    html_content = html_content.replace("SCHEME_TITLE_PLACEHOLDER", data_dict.get("scheme_title", "सरकारी योजना"))
+    html_content = html_content.replace("SCHEME_DETAIL_PLACEHOLDER", data_dict.get("scheme_detail", "विवरण"))
+    
+    return HTMLResponse(content=html_content)
+
+@app.post("/chat_pro")
+async def chat_pro(req: Request):
+    body = await req.json()
+    phone = body.get("phone") or "Guest"
+    query = body.get("query", "")
+    image_base64 = body.get("image_base64")
+    
+    system_instruction = (
+        "तुम 'AgriDairy Expert AI' हो। तुम एक बेहद मददगार और अनुभवी डेयरी साइंस एक्सपर्ट हो। "
+        "तुम भारतीय किसानों की भाषा (हिंदी, इंग्लिश, या हिंग्लिश) को तुरंत समझकर आसान भाषा में जवाब देते हो। "
+        "जब भी कोई डेयरी का सवाल पूछे या पशु की बीमारी की फोटो भेजे, तुम तुरंत Google Search का उपयोग करोगे "
+        "और सटीक वैज्ञानिक डेटा, चारा मात्रा (KG), दवाइयों के नाम और ग्राउंड रिपोर्ट के आधार पर ही उत्तर दोगे।"
+    )
+    
+    contents = []
+    if query:
+        contents.append(query)
+    
+    if image_base64:
+        try:
+            image_bytes = base64.b64decode(image_base64)
+            contents.append(types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"))
+        except Exception:
+            return {"response": "फोटो को समझने में समस्या आई भाई।"}
+
+    try:
+        res = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=0.2
+            )
+        )
+        ai_response = res.text
+        
+        await query_supabase("chat_history", "POST", {"phone": phone, "sender": "user", "message": query or "📷 फोटो अपलोड"})
+        await query_supabase("chat_history", "POST", {"phone": phone, "sender": "ai", "message": ai_response})
+        
+        return {"response": ai_response}
+    except Exception:
+        return {"response": "नमस्ते भाई, इस समय नेटवर्क थोड़ा धीमा है, कृपया एक बार दोबारा संदेश भेजें।"}
+
+@app.get("/get_chat")
+async def get_chat(phone: str):
+    return await query_supabase(f"chat_history?phone=eq.{phone}&order=created_at.asc")
+
+@app.post("/add_cattle")
+async def add_cattle(req: Request):
+    body = await req.json()
+    return await query_supabase("cattle_records", "POST", body)
+
+@app.get("/get_cattle")
+async def get_cattle(phone: str):
+    return await query_supabase(f"cattle_records?phone=eq.{phone}")
+
+@app.post("/add_milk")
+async def add_milk(req: Request):
+    body = await req.json()
+    return await query_supabase("milk_records", "POST", body)
+
+@app.get("/get_milk")
+async def get_milk(phone: str):
+    return await query_supabase(f"milk_records?phone=eq.{phone}")
+
+@app.get("/update_setting")
+async def update_setting(key: str, val: str):
+    return await query_supabase(f"site_settings?key=eq.{key}", "PATCH", {"value": val})
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

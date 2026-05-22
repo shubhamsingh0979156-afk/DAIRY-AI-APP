@@ -14,10 +14,10 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
 
-# जेमिनी प्रो क्लाइंट इंजन
+# जेमिनी इंजन चालू करें
 client = genai.Client(api_key=API_KEY) if API_KEY else None
 
-# 📦 सुपाबेस कोर सिंक
+# 📦 सुपाबेस कोर सिंक (भविष्य के बैकअप के लिए सुरक्षित)
 async def query_supabase(path: str, method: str = "GET", json_data: dict = None):
     if not SUPABASE_URL or not SUPABASE_KEY:
         return []
@@ -40,10 +40,6 @@ async def query_supabase(path: str, method: str = "GET", json_data: dict = None)
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    """
-    💻 हूबहू Google Gemini Advanced इंटरफ़ेस डिज़ाइन - नाम: Vortex.AI
-    इसमें ओरिजिनल SVG आइकन्स और टेलीग्राम-स्टाइल पेपर-एयरप्लेन सेंड बटन लॉक्ड है।
-    """
     html_content = """<!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -55,39 +51,34 @@ async def home():
         * { box-sizing: border-box; font-family: 'Google Sans', Arial, sans-serif; margin: 0; padding: 0; }
         body { background-color: #131314; color: #e3e3e3; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* 💻 जेमिनी जैसा टॉप बार */
-        .header { background-color: #131314; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2f31; }
+        .header { background-color: #131314; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2f31; }
         .brand-title { font-size: 22px; font-weight: 400; color: #e3e3e3; letter-spacing: -0.5px; }
         
         .main-workspace { flex: 1; overflow-y: auto; padding: 20px; max-width: 780px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
         .chat-container { display: flex; flex-direction: column; gap: 32px; padding-bottom: 140px; width: 100%; }
         
-        /* ✨ सेंटर वेलकम गाइड */
         .welcome-center { text-align: center; margin: auto; padding: 40px 20px; }
         .welcome-center h1 { font-size: 36px; font-weight: 400; background: linear-gradient(to right, #4285f4, #9b51e0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
         .welcome-center p { color: #8e918f; font-size: 16px; }
         
-        /* 💬 ओरिजिनल जेमिनी प्लेन चैट लेआउट */
         .message-wrapper { display: flex; flex-direction: column; width: 100%; }
-        .message { font-size: 16px; line-height: 1.6; word-wrap: break-word; color: #e3e3e3; }
+        .message { font-size: 16px; line-height: 1.6; word-wrap: break-word; color: #e3e3e3; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
         .user-wrapper { align-items: flex-end; }
-        .user-message { background-color: #2a2b2d; padding: 14px 22px; border-radius: 22px; max-width: 85%; }
+        .user-message { background-color: #2a2b2d; padding: 12px 20px; border-radius: 20px; border: 1px solid #3c4043; max-width: 85%; }
         .ai-wrapper { align-items: flex-start; }
         .ai-message { background-color: transparent; white-space: pre-wrap; width: 100%; padding-left: 2px; }
-        .chat-img { max-width: 280px; border-radius: 14px; margin-top: 12px; border: 1px solid #3c4043; }
+        .chat-img { max-width: 280px; border-radius: 14px; margin-top: 12px; display: block; border: 1px solid #3c4043; }
         
-        /* 🚀 जेमिनी इनपुट कैप्सूल और असली SVG बटन्स */
         .input-anchor { background: linear-gradient(to top, #131314 80%, transparent); padding: 20px 15px; position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; z-index: 10; }
         .input-capsule { max-width: 780px; width: 100%; display: flex; gap: 6px; align-items: center; background: #1e1f20; padding: 6px 16px; border-radius: 100px; border: 1px solid #2d2f31; }
         input[type="text"] { flex: 1; padding: 12px 6px; border: none; font-size: 16px; outline: none; background: transparent; color: #e3e3e3; }
         input[type="text"]::placeholder { color: #8e918f; }
         
-        /* 🎨 गूगल मटीरियल स्टाइल SVG आइकन्स */
         .svg-btn { background: transparent; border: none; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; fill: #c4c7c5; transition: background 0.2s; }
         .svg-btn:hover { background: #2e3135; fill: #ffffff; }
-        .send-btn-active { fill: #e3e3e3; }
         
-        /* 🌊 जेमिनी ग्रैडिएंट वेव प्रोग्रेस बार */
         .wave-loader { display: none; width: 100%; height: 3px; background: linear-gradient(to right, #4285f4, #34a853, #fbbc05, #ea4335); background-size: 400% 400%; animation: waveMove 1.5s linear infinite; position: fixed; bottom: 88px; left: 0; z-index: 100; }
         @keyframes waveMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
     </style>
@@ -103,9 +94,8 @@ async def home():
     <div class="main-workspace">
         <div class="welcome-center" id="welcomeCore">
             <h1>नमस्ते, मैं Vortex.AI हूँ</h1>
-            <p>मैं लाइव सर्च और विज़न क्षमता से लैस हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?</p>
+            <p>मैं लाइव इंटरनेट सर्च और विज़न क्षमता से लैस हूँ। आज मैं आपकी क्या मदद कर सकता हूँ?</p>
         </div>
-        
         <div class="chat-container" id="chatScreen" style="display: none;"></div>
     </div>
 
@@ -123,7 +113,7 @@ async def home():
             
             <input type="text" id="queryBox" placeholder="यहाँ संदेश लिखें..." onkeypress="if(event.key==='Enter') executeVortexAI()">
             
-            <button class="svg-btn send-btn-active" onclick="executeVortexAI()">
+            <button class="svg-btn" onclick="executeVortexAI()">
                 <svg viewBox="0 0 24 24" width="24" height="24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
         </div>
@@ -134,7 +124,7 @@ async def home():
 
         function processVoice() {
             window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if(!window.SpeechRecognition) { alert("आपका ब्राउज़र वॉइस टाइपिंग सपोर्ट नहीं करता है।"); return; }
+            if(!window.SpeechRecognition) { alert("माइक सपोर्ट अनुपलब्ध है।"); return; }
             const rec = new SpeechRecognition();
             rec.lang = 'hi-IN';
             document.getElementById('micTrigger').style.fill = "#ea4335";
@@ -165,7 +155,6 @@ async def home():
             screen.style.display = 'flex';
             document.getElementById('shimmerLoader').style.display = 'block';
 
-            // यूज़र एंड रेंडर
             let uWrap = document.createElement('div');
             uWrap.className = 'message-wrapper user-wrapper';
             let uMsg = document.createElement('div');
@@ -203,7 +192,7 @@ async def home():
                 aiWrap.className = 'message-wrapper ai-wrapper';
                 let aiMsg = document.createElement('div');
                 aiMsg.className = 'message ai-message';
-                aiMsg.innerText = "सिस्टम ओवरलोड है भाई, कृपया एक बार दोबारा सेंड करें।";
+                aiMsg.innerText = "सिस्टम व्यस्त है, कृपया पुनः प्रयास करें भाई।";
                 aiWrap.appendChild(aiMsg);
                 screen.appendChild(aiWrap);
             }
@@ -223,12 +212,11 @@ async def chat_pro(req: Request):
         query = body.get("query", "")
         image_base64 = body.get("image_base64")
         
-        # 🧠 प्रीमियम सिस्टम इंस्ट्रक्शन (Vortex.AI Engine)
         system_instruction = (
             "You are Vortex.AI, a premium, world-class artificial intelligence system built for extreme computational and logical tasking. "
             "You provide highly sophisticated, precise, and scientifically accurate responses. "
             "Always rely on the integrated Google Search tool for ground-truth reality and current affairs data. "
-            "Respond naturally in Hindi or Hinglish based on user preference, with maximum clarity and structured breakdown."
+            "Respond naturally in Hindi or Hinglish based on user preference, with maximum clarity."
         )
         
         contents = []
@@ -245,25 +233,17 @@ async def chat_pro(req: Request):
         if not client:
             return {"response": "Vortex API Core Error: GEMINI_API_KEY Missing."}
 
-        # 🚀 लाइव गूगल सर्च ग्राउंडिंग के साथ प्रो रिस्पॉन्स इंजन
+        # ⚡ कोटा फिक्स: हाय-परफॉर्मेंस 'gemini-2.5-flash' का लाइव गूगल सर्च के साथ उपयोग
         res = client.models.generate_content(
-            model='gemini-2.5-pro', # असली सुपर-इंटेलिजेंट प्रो मॉडल
+            model='gemini-2.5-flash',
             contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
-                tools=[types.Tool(google_search=types.GoogleSearch())], # 🌍 लाइव इंटरनेट कनेक्टेड
-                temperature=0.15
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=0.2
             )
         )
-        ai_response = res.text
-        
-        # बैकएंड सिंक (सुपाबेस में डेटा लॉग करना)
-        try:
-            await query_supabase("vortex_chats", "POST", {"message_log": query or "📷 फोटो अपलोड", "ai_response": ai_response})
-        except Exception:
-            pass
-            
-        return {"response": ai_response}
+        return {"response": res.text}
     except Exception as e:
         return {"response": f"Vortex API Engine से संपर्क अस्थाई रूप से बाधित हुआ। विवरण: {str(e)}"}
 
